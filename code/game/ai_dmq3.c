@@ -57,6 +57,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // for the voice chats
 #include "../../ui/menudef.h" // sos001205 - for q3_ui also
 
+#include "../qcommon/q_shared.h"
+
+#define PIPENAME "/tmp/pipes/pipe"
+
 // from aasfile.h
 #define AREACONTENTS_MOVER				1024
 #define AREACONTENTS_MODELNUMSHIFT		24
@@ -106,6 +110,7 @@ int red_numaltroutegoals;
 aas_altroutegoal_t blue_altroutegoals[MAX_ALTROUTEGOALS];
 int blue_numaltroutegoals;
 
+// Pipename (need to automate it)
 
 /*
 ==================
@@ -5249,6 +5254,7 @@ void BotDeathmatchAI(bot_state_t *bs, float thinktime) {
 		if(strcmp(bs->settings.characterfile,"bots/adam_c.c")==0)
 		{
 			bs->adaptive = 1;
+
 			G_Printf("ADAPTIVE AGENT INITIALIZED");
 		}
 		BotSetupAlternativeRouteGoals();
@@ -5279,7 +5285,16 @@ void BotDeathmatchAI(bot_state_t *bs, float thinktime) {
 		}
 		//if the bot removed itself :)
 		if (!bs->inuse) return;
+		
+		char str1[80];
 
+		int fd1 = open(PIPENAME,O_RDONLY);
+		if(fd1 != -1)
+		{
+			read(fd1,str1,80);
+			G_Printf("%s \n",str1);
+		}
+		close(fd1);
 		bs->lastframe_health = bs->inventory[INVENTORY_HEALTH];
 		bs->lasthitcount = bs->cur_ps.persistant[PERS_HITS];
 	}

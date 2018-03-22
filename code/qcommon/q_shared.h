@@ -165,6 +165,10 @@ typedef int intptr_t;
 #include <time.h>
 #include <ctype.h>
 #include <limits.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #ifdef _MSC_VER
   #include <io.h>
