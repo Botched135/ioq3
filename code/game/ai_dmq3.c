@@ -5246,6 +5246,11 @@ void BotDeathmatchAI(bot_state_t *bs, float thinktime) {
 		//
 		bs->setupcount = 0;
 		//
+		if(strcmp(bs->settings.characterfile,"bots/adam_c.c")==0)
+		{
+			bs->adaptive = 1;
+			G_Printf("ADAPTIVE AGENT INITIALIZED");
+		}
 		BotSetupAlternativeRouteGoals();
 	}
 	//no ideal view set
@@ -5261,44 +5266,64 @@ void BotDeathmatchAI(bot_state_t *bs, float thinktime) {
 		//check for air
 		BotCheckAir(bs);
 	}
-	//check the console messages
-	BotCheckConsoleMessages(bs);
-	//if not in the intermission and not in observer mode
-	if (!BotIntermission(bs) && !BotIsObserver(bs)) {
-		//do team AI
-		BotTeamAI(bs);
-	}
-	//if the bot has no ai node
-	if (!bs->ainode) {
-		AIEnter_Seek_LTG(bs, "BotDeathmatchAI: no ai node");
-	}
-	//if the bot entered the game less than 8 seconds ago
-	if (!bs->entergamechat && bs->entergame_time > FloatTime() - 8) {
-		if (BotChat_EnterGame(bs)) {
-			bs->stand_time = FloatTime() + BotChatTime(bs);
-			AIEnter_Stand(bs, "BotDeathmatchAI: chat enter game");
+
+	if(bs->adaptive)
+	{
+		//if the bot entered the game less than 8 seconds ago
+		if (!bs->entergamechat && bs->entergame_time > FloatTime() - 8) {
+			if (BotChat_EnterGame(bs)) {
+				bs->stand_time = FloatTime() + BotChatTime(bs);
+				AIEnter_Stand(bs, "BotDeathmatchAI: chat enter game");
+			}
+			bs->entergamechat = qtrue;
 		}
-		bs->entergamechat = qtrue;
+		//if the bot removed itself :)
+		if (!bs->inuse) return;
+
+		bs->lastframe_health = bs->inventory[INVENTORY_HEALTH];
+		bs->lasthitcount = bs->cur_ps.persistant[PERS_HITS];
 	}
-	//reset the node switches from the previous frame
-	BotResetNodeSwitches();
-	//execute AI nodes
-	for (i = 0; i < MAX_NODESWITCHES; i++) {
-		if (bs->ainode(bs)) break;
+	else
+	{
+		//check the console messages
+		BotCheckConsoleMessages(bs);
+		//if not in the intermission and not in observer mode
+		if (!BotIntermission(bs) && !BotIsObserver(bs)) {
+			//do team AI
+			BotTeamAI(bs);
+		}
+		//if the bot has no ai node
+		if (!bs->ainode) {
+			AIEnter_Seek_LTG(bs, "BotDeathmatchAI: no ai node");
+		}	
+		//if the bot entered the game less than 8 seconds ago
+		if (!bs->entergamechat && bs->entergame_time > FloatTime() - 8) {
+			if (BotChat_EnterGame(bs)) {
+				bs->stand_time = FloatTime() + BotChatTime(bs);
+				AIEnter_Stand(bs, "BotDeathmatchAI: chat enter game");
+			}
+			bs->entergamechat = qtrue;
+		}
+		//reset the node switches from the previous frame
+		BotResetNodeSwitches();
+		//execute AI nodes
+		for (i = 0; i < MAX_NODESWITCHES; i++) {
+			if (bs->ainode(bs)) break;
+		}	
+		//if the bot removed itself :)
+		if (!bs->inuse) return;
+		//if the bot executed too many AI nodes
+		if (i >= MAX_NODESWITCHES) {
+			trap_BotDumpGoalStack(bs->gs);
+			trap_BotDumpAvoidGoals(bs->gs);
+			BotDumpNodeSwitches(bs);
+			ClientName(bs->client, name, sizeof(name));
+			BotAI_Print(PRT_ERROR, "%s at %1.1f switched more than %d AI nodes\n", name, FloatTime(), MAX_NODESWITCHES);
+		}
+		//
+		bs->lastframe_health = bs->inventory[INVENTORY_HEALTH];
+		bs->lasthitcount = bs->cur_ps.persistant[PERS_HITS];
 	}
-	//if the bot removed itself :)
-	if (!bs->inuse) return;
-	//if the bot executed too many AI nodes
-	if (i >= MAX_NODESWITCHES) {
-		trap_BotDumpGoalStack(bs->gs);
-		trap_BotDumpAvoidGoals(bs->gs);
-		BotDumpNodeSwitches(bs);
-		ClientName(bs->client, name, sizeof(name));
-		BotAI_Print(PRT_ERROR, "%s at %1.1f switched more than %d AI nodes\n", name, FloatTime(), MAX_NODESWITCHES);
-	}
-	//
-	bs->lastframe_health = bs->inventory[INVENTORY_HEALTH];
-	bs->lasthitcount = bs->cur_ps.persistant[PERS_HITS];
 }
 
 /*
