@@ -3781,3 +3781,27 @@ int QDECL Com_strCompare( const void *a, const void *b )
     const char **pb = (const char **)b;
     return strcmp( *pa, *pb );
 }
+
+
+/*
+==========================================================================
+
+ADAM Trap actual implementation
+
+TODO
+
+==========================================================================
+*/
+
+int Trap_Adam_Com_Open_Pipe(char* fileName)
+{
+	return 0;
+}
+void Trap_Adam_Com_Read(int file, float* outputArray)
+{
+	//TO-DO
+}
+void Trap_Adam_Com_Write(float* inputArray)
+{
+	//TO-DO
+}

@@ -232,7 +232,9 @@ Q_EXPORT intptr_t vmMain( int command, int arg0, int arg1, int arg2, int arg3, i
 	case BOTAI_START_FRAME:
 		return BotAIStartFrame( arg0 );
 	}
-
+	/*
+	PASS IN ENUM AND FUNCTION HERE IN ORDER TO BE CALLED OUTSIDE OF VM 
+	*/
 	return -1;
 }
 

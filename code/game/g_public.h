@@ -387,7 +387,13 @@ typedef enum {
 	BOTLIB_PC_LOAD_SOURCE,
 	BOTLIB_PC_FREE_SOURCE,
 	BOTLIB_PC_READ_TOKEN,
-	BOTLIB_PC_SOURCE_FILE_AND_LINE
+	BOTLIB_PC_SOURCE_FILE_AND_LINE,
+
+	//DEFINE FUNCTIONS
+	ADAM_COM_OPEN_PIPE = 600,
+	ADAM_COM_READ_PIPE,
+	ADAM_COM_WRITE_PIPE
+
 
 } gameImport_t;
 
@@ -426,5 +432,7 @@ typedef enum {
 	// and parameters.  Return qfalse if the game doesn't recognize it as a command.
 
 	BOTAI_START_FRAME				// ( int time );
+
+	//INSERT ENUMS TO BE CALLED OUTSIDE VM HERE
 } gameExport_t;
 

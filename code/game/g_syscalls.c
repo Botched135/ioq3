@@ -790,3 +790,18 @@ int trap_PC_ReadToken( int handle, pc_token_t *pc_token ) {
 int trap_PC_SourceFileAndLine( int handle, char *filename, int *line ) {
 	return syscall( BOTLIB_PC_SOURCE_FILE_AND_LINE, handle, filename, line );
 }
+
+//ADAM functions
+int Trap_Adam_Com_Open_Pipe(char* fileName)
+{
+	return syscall(ADAM_COM_OPEN_PIPE,fileName);
+}
+void  Trap_Adam_Com_Read(int file, float* outputArray)
+{
+	syscall(ADAM_COM_READ_PIPE,file,outputArray);
+}
+void Trap_Adam_Com_Write(float* inputArray)
+{
+	syscall(ADAM_COM_WRITE_PIPE,inputArray);
+}
+

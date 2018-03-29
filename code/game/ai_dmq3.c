@@ -59,7 +59,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "../qcommon/q_shared.h"
 
-#define PIPENAME "/tmp/pipes/pipe"
+#define PIPENAME "pipe01"
 
 // from aasfile.h
 #define AREACONTENTS_MOVER				1024
@@ -5256,6 +5256,9 @@ void BotDeathmatchAI(bot_state_t *bs, float thinktime) {
 			bs->adaptive = 1;
 
 			G_Printf("ADAPTIVE AGENT INITIALIZED");
+
+			//pipeHandler = FS_FCreateOpenPipeFile(PIPENAME);
+			G_Printf("Pipe created");
 		}
 		BotSetupAlternativeRouteGoals();
 	}
@@ -5285,16 +5288,6 @@ void BotDeathmatchAI(bot_state_t *bs, float thinktime) {
 		}
 		//if the bot removed itself :)
 		if (!bs->inuse) return;
-		
-		char str1[80];
-
-		int fd1 = open(PIPENAME,O_RDONLY);
-		if(fd1 != -1)
-		{
-			read(fd1,str1,80);
-			G_Printf("%s \n",str1);
-		}
-		close(fd1);
 		bs->lastframe_health = bs->inventory[INVENTORY_HEALTH];
 		bs->lasthitcount = bs->cur_ps.persistant[PERS_HITS];
 	}

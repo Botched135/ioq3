@@ -29,7 +29,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
  * $Archive: /source/code/botai/ai_chat.c $
  *
  *****************************************************************************/
-
 //setup the deathmatch AI
 void BotSetupDeathmatchAI(void);
 //shutdown the deathmatch AI

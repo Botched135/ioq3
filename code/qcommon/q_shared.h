@@ -168,7 +168,6 @@ typedef int intptr_t;
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <unistd.h>
 
 #ifdef _MSC_VER
   #include <io.h>
@@ -1416,7 +1415,17 @@ typedef enum _flag_status {
 	FLAG_DROPPED
 } flagStatus_t;
 
+/*
+===================================================================
 
+ADAM AGENT
+
+===================================================================
+*/
+
+int Trap_Adam_Com_Open_Pipe(char* fileName);
+void Trap_Adam_Com_Read(int file, float* outputArray);
+void Trap_Adam_Com_Write(float* inputArray);
 
 #define	MAX_GLOBAL_SERVERS				4096
 #define	MAX_OTHER_SERVERS					128
