@@ -59,7 +59,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "../qcommon/q_shared.h"
 
-#define PIPENAME "pipe01"
+#define PIPENAME "/home/rbons/pipes/pipe"
 
 // from aasfile.h
 #define AREACONTENTS_MOVER				1024
@@ -5294,7 +5294,7 @@ void BotDeathmatchAI(bot_state_t *bs, float thinktime) {
 		fd = trap_Adam_Com_Open_Pipe(PIPENAME,1);
 		trap_Adam_Com_Read(fd,output);
 		trap_Adam_Com_Close_Pipe(fd);
-		G_Printf("%i\n",fd);
+		G_Printf("%s\n",output);
 		bs->lastframe_health = bs->inventory[INVENTORY_HEALTH];
 		bs->lasthitcount = bs->cur_ps.persistant[PERS_HITS];
 	}

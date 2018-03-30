@@ -3799,7 +3799,7 @@ int trap_Adam_Com_Open_Pipe(char* fileName,int read)
 {
 	int fd;
     fd = open(fileName,read == 1 ? O_RDONLY : O_WRONLY);
-	return 100;
+	return fd;
 }
 void trap_Adam_Com_Close_Pipe(int fd)
 {
