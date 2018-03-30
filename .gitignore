@@ -39,4 +39,4 @@ profile
 *.sdf
 *.opensdf
 *.suo
-vscode/
+.vscode/

@@ -5226,7 +5226,9 @@ BotDeathmatchAI
 void BotDeathmatchAI(bot_state_t *bs, float thinktime) {
 	char gender[144], name[144];
 	char userinfo[MAX_INFO_STRING];
+	char output[80];
 	int i;
+	int fd;
 
 	//if the bot has just been setup
 	if (bs->setupcount > 0) {
@@ -5288,6 +5290,11 @@ void BotDeathmatchAI(bot_state_t *bs, float thinktime) {
 		}
 		//if the bot removed itself :)
 		if (!bs->inuse) return;
+		
+		fd = trap_Adam_Com_Open_Pipe(PIPENAME,1);
+		trap_Adam_Com_Read(fd,output);
+		trap_Adam_Com_Close_Pipe(fd);
+		G_Printf("%i\n",fd);
 		bs->lastframe_health = bs->inventory[INVENTORY_HEALTH];
 		bs->lasthitcount = bs->cur_ps.persistant[PERS_HITS];
 	}

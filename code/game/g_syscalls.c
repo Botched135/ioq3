@@ -792,15 +792,19 @@ int trap_PC_SourceFileAndLine( int handle, char *filename, int *line ) {
 }
 
 //ADAM functions
-int Trap_Adam_Com_Open_Pipe(char* fileName)
+int trap_Adam_Com_Open_Pipe(char* fileName, int read)
 {
-	return syscall(ADAM_COM_OPEN_PIPE,fileName);
+	return syscall(ADAM_COM_OPEN_PIPE,fileName,read);
 }
-void  Trap_Adam_Com_Read(int file, float* outputArray)
+void trap_Adam_Com_Close_Pipe(int fd)
+{
+	syscall(ADAM_COM_CLOSE_PIPE,fd);
+}
+void  trap_Adam_Com_Read(int file, char* outputArray)
 {
 	syscall(ADAM_COM_READ_PIPE,file,outputArray);
 }
-void Trap_Adam_Com_Write(float* inputArray)
+void trap_Adam_Com_Write(float* inputArray)
 {
 	syscall(ADAM_COM_WRITE_PIPE,inputArray);
 }

@@ -3793,15 +3793,23 @@ TODO
 ==========================================================================
 */
 
-int Trap_Adam_Com_Open_Pipe(char* fileName)
+#include <unistd.h>
+//Returns fd
+int trap_Adam_Com_Open_Pipe(char* fileName,int read)
 {
-	return 0;
+	int fd;
+    fd = open(fileName,read == 1 ? O_RDONLY : O_WRONLY);
+	return 100;
 }
-void Trap_Adam_Com_Read(int file, float* outputArray)
+void trap_Adam_Com_Close_Pipe(int fd)
 {
-	//TO-DO
+	close(fd);
 }
-void Trap_Adam_Com_Write(float* inputArray)
+void trap_Adam_Com_Read(int file, char* outputArray)
+{
+	read(file,outputArray,80);
+}
+void trap_Adam_Com_Write(float* inputArray)
 {
 	//TO-DO
 }

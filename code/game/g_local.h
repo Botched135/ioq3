@@ -952,6 +952,7 @@ int		trap_GeneticParentsAndChildSelection(int numranks, float *ranks, int *paren
 void	trap_SnapVector( float *v );
 
 //ADAM BOT
-int		trap_Adam_Com_Open_Pipe(char* fileName);
-void    trap_Adam_Com_Read(int file, float* outputArray);
+int		trap_Adam_Com_Open_Pipe(char* fileName, int read);
+void	trap_Adam_Com_Close_Pipe(int fd);
+void    trap_Adam_Com_Read(int file, char* outputArray);
 void	trap_Adam_Com_Write(float* inputArray);

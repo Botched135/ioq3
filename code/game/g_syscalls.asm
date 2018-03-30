@@ -224,6 +224,7 @@ equ trap_BotLibReadToken				-581
 equ trap_BotLibSourceFileAndLine		-582
 
 equ	trap_Adam_Com_Open_Pipe             -601
-equ trap_Adam_Com_Read                  -602
-equ	trap_Adam_Com_Write                 -603
+equ trap_Adam_Com_Close_Pipe            -602
+equ trap_Adam_Com_Read                  -603
+equ	trap_Adam_Com_Write                 -604
 
