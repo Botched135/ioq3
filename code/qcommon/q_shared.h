@@ -1423,10 +1423,10 @@ ADAM AGENT
 ===================================================================
 */
 
-int trap_Adam_Com_Open_Pipe(char* fileName,int read);
-void trap_Adam_Com_Close_Pipe(int fd);
-void trap_Adam_Com_Read(int file, char* outputArray);
-void trap_Adam_Com_Write(float* inputArray);
+int trap_Adam_Com_Open_Pipe	(char* fileName,int read);
+int trap_Adam_Com_Close_Pipe(int fd);
+void trap_Adam_Com_Read		(int file, char* outputArray,int bufferSize);
+void trap_Adam_Com_Write	(int file, char* inputArray, int bufferSize);
 
 #define	MAX_GLOBAL_SERVERS				4096
 #define	MAX_OTHER_SERVERS					128

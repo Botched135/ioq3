@@ -59,7 +59,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "../qcommon/q_shared.h"
 
-#define PIPENAME "/home/rbons/pipes/pipe"
+#define PIPENAME 	"/home/rbons/pipes/pipe"
+
 
 // from aasfile.h
 #define AREACONTENTS_MOVER				1024
@@ -5228,7 +5229,7 @@ void BotDeathmatchAI(bot_state_t *bs, float thinktime) {
 	char userinfo[MAX_INFO_STRING];
 	char output[80];
 	int i;
-	int fd;
+	int fd,close;
 
 	//if the bot has just been setup
 	if (bs->setupcount > 0) {
@@ -5290,11 +5291,17 @@ void BotDeathmatchAI(bot_state_t *bs, float thinktime) {
 		}
 		//if the bot removed itself :)
 		if (!bs->inuse) return;
-		
+
+		//Send to pNEAT
+		fd = trap_Adam_Com_Open_Pipe(PIPENAME,0);
+		trap_Adam_Com_Write(fd,"from Q3",80);
+		close = trap_Adam_Com_Close_Pipe(fd);
+
+		//Receive from pNEAT
 		fd = trap_Adam_Com_Open_Pipe(PIPENAME,1);
-		trap_Adam_Com_Read(fd,output);
-		trap_Adam_Com_Close_Pipe(fd);
-		G_Printf("%s\n",output);
+		trap_Adam_Com_Read(fd,output,80);
+		close = trap_Adam_Com_Close_Pipe(fd);
+		G_Printf("In Q3: %s",output);
 		bs->lastframe_health = bs->inventory[INVENTORY_HEALTH];
 		bs->lasthitcount = bs->cur_ps.persistant[PERS_HITS];
 	}

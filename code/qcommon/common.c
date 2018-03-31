@@ -3801,15 +3801,15 @@ int trap_Adam_Com_Open_Pipe(char* fileName,int read)
     fd = open(fileName,read == 1 ? O_RDONLY : O_WRONLY);
 	return fd;
 }
-void trap_Adam_Com_Close_Pipe(int fd)
+int trap_Adam_Com_Close_Pipe(int fd)
 {
-	close(fd);
+	return close(fd);
 }
-void trap_Adam_Com_Read(int file, char* outputArray)
+void trap_Adam_Com_Read(int file, char* outputArray,int bufferSize)
 {
-	read(file,outputArray,80);
+	read(file,outputArray,bufferSize);
 }
-void trap_Adam_Com_Write(float* inputArray)
+void trap_Adam_Com_Write(int file, char* inputArray,int bufferSize)
 {
-	//TO-DO
+	write(file,inputArray, bufferSize);
 }
