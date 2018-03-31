@@ -5227,7 +5227,7 @@ BotDeathmatchAI
 void BotDeathmatchAI(bot_state_t *bs, float thinktime) {
 	char gender[144], name[144];
 	char userinfo[MAX_INFO_STRING];
-	char output[80];
+	char output[80],input[80];
 	int i;
 	int fd,close;
 
@@ -5258,10 +5258,7 @@ void BotDeathmatchAI(bot_state_t *bs, float thinktime) {
 		{
 			bs->adaptive = 1;
 
-			G_Printf("ADAPTIVE AGENT INITIALIZED");
-
-			//pipeHandler = FS_FCreateOpenPipeFile(PIPENAME);
-			G_Printf("Pipe created");
+			G_Printf("ADAPTIVE AGENT INITIALIZED\n");
 		}
 		BotSetupAlternativeRouteGoals();
 	}
@@ -5291,10 +5288,11 @@ void BotDeathmatchAI(bot_state_t *bs, float thinktime) {
 		}
 		//if the bot removed itself :)
 		if (!bs->inuse) return;
-
+	
 		//Send to pNEAT
+		strcpy(input,"Works\n \0");
 		fd = trap_Adam_Com_Open_Pipe(PIPENAME,0);
-		trap_Adam_Com_Write(fd,"from Q3",80);
+		trap_Adam_Com_Write(fd,input,strlen(input));
 		close = trap_Adam_Com_Close_Pipe(fd);
 
 		//Receive from pNEAT
