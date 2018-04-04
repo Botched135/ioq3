@@ -59,7 +59,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "../qcommon/q_shared.h"
 
-#define PIPENAME 	"/home/rbons/pipes/pipe"
+
 
 
 // from aasfile.h
@@ -5256,7 +5256,7 @@ void BotDeathmatchAI(bot_state_t *bs, float thinktime) {
 		//
 		if(strcmp(bs->settings.characterfile,"bots/adam_c.c")==0)
 		{
-			bs->adaptive = 1;
+			bs->adaptive = 2;
 
 			G_Printf("ADAPTIVE AGENT INITIALIZED\n");
 		}
@@ -5288,7 +5288,7 @@ void BotDeathmatchAI(bot_state_t *bs, float thinktime) {
 		}
 		//if the bot removed itself :)
 		if (!bs->inuse) return;
-	
+		/*
 		//Send to pNEAT
 		strcpy(input,"Works\n \0");
 		fd = trap_Adam_Com_Open_Pipe(PIPENAME,0);
@@ -5299,9 +5299,10 @@ void BotDeathmatchAI(bot_state_t *bs, float thinktime) {
 		fd = trap_Adam_Com_Open_Pipe(PIPENAME,1);
 		trap_Adam_Com_Read(fd,output,80);
 		close = trap_Adam_Com_Close_Pipe(fd);
-		G_Printf("In Q3: %s",output);
+		G_Printf("In Q3: %s",output);*/
 		bs->lastframe_health = bs->inventory[INVENTORY_HEALTH];
 		bs->lasthitcount = bs->cur_ps.persistant[PERS_HITS];
+		
 	}
 	else
 	{
@@ -5328,8 +5329,10 @@ void BotDeathmatchAI(bot_state_t *bs, float thinktime) {
 		BotResetNodeSwitches();
 		//execute AI nodes
 		for (i = 0; i < MAX_NODESWITCHES; i++) {
+			G_Printf("Iterations: %i \t",bs->ainode(bs));
 			if (bs->ainode(bs)) break;
-		}	
+		}
+		G_Printf("\n");	
 		//if the bot removed itself :)
 		if (!bs->inuse) return;
 		//if the bot executed too many AI nodes
@@ -5510,4 +5513,22 @@ BotShutdownDeathmatchAI
 */
 void BotShutdownDeathmatchAI(void) {
 	altroutegoals_setup = qfalse;
+}
+
+/*
+
+ADAM FUNCTIONS
+
+*/
+void AdamBotIntermission(bot_state_t *bs)
+{
+	bs->flags &= ~BFL_IDEALVIEWSET;
+	if (!BotIntermission(bs)) 
+	{
+		BotUpdateInventory(bs);
+		//check out the snapshot
+		BotCheckSnapshot(bs);
+		//check for air
+		BotCheckAir(bs);
+	}
 }

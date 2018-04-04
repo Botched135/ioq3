@@ -1927,7 +1927,7 @@ BotTeamAI
 void BotTeamAI(bot_state_t *bs) {
 	int numteammates;
 	char netname[MAX_NETNAME];
-
+	
 	//
 	if ( gametype < GT_TEAM  )
 		return;

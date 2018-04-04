@@ -294,3 +294,8 @@ int		BotAI_GetClientState( int clientNum, playerState_t *state );
 int		BotAI_GetEntityState( int entityNum, entityState_t *state );
 int		BotAI_GetSnapshotEntity( int clientNum, int sequence, entityState_t *state );
 int		BotTeamLeader(bot_state_t *bs);
+
+// ADAM functions
+void BotAdamAgent(int clientNum, float thinktime,float *neatInput); 
+int BotStateToNEAT(float neatArray[MAX_CLIENTS][19], bot_state_t **bs);
+void AdamBotChatSetup(int client, bot_state_t *bs);

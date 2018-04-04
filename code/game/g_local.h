@@ -955,4 +955,5 @@ void	trap_SnapVector( float *v );
 int		trap_Adam_Com_Open_Pipe(char* fileName, int read);
 int	    trap_Adam_Com_Close_Pipe(int fd);
 void    trap_Adam_Com_Read(int file, char* outputArray,int bufferSize);
-void	trap_Adam_Com_Write(int file, char* inputArray,int bufferSize);
+void	trap_Adam_Com_Write(int file, float neatArray[MAX_CLIENTS][19], int adaptiveAgents);
+void	trap_Adam_Com_Array_To_Action(float* outputArray, char* data);

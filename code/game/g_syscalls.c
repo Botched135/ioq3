@@ -804,8 +804,13 @@ void  trap_Adam_Com_Read(int file, char* outputArray, int bufferSize)
 {
 	syscall(ADAM_COM_READ_PIPE,file,outputArray,bufferSize);
 }
-void trap_Adam_Com_Write(int file, char* inputArray,int bufferSize)
+void trap_Adam_Com_Write(int file, float neatArray[MAX_CLIENTS][19], int adaptiveAgents)
 {
-	syscall(ADAM_COM_WRITE_PIPE,file,inputArray,bufferSize);
+	syscall(ADAM_COM_WRITE_PIPE,file,neatArray,adaptiveAgents);
+}
+
+void trap_Adam_Com_Array_To_Action(float* outputArray, char* data)
+{
+	syscall(ADAM_COM_ARRAY_TO_ACTION,outputArray,data);
 }
 

@@ -55,6 +55,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "inv.h"
 #include "syn.h"
 
+#define PIPENAME 	"/home/rbons/pipes/pipe"
 
 //bot states
 bot_state_t	*botstates[MAX_CLIENTS];
@@ -1400,13 +1401,15 @@ BotAIStartFrame
 ==================
 */
 int BotAIStartFrame(int time) {
-	int i;
+	int i,adaptiveAgents,fd;
 	gentity_t	*ent;
 	bot_entitystate_t state;
 	int elapsed_time, thinktime;
 	static int local_time;
 	static int botlib_residual;
 	static int lastbotthink_time;
+	// FOR ADAM
+	float neatInput[MAX_CLIENTS][19];
 
 	G_CheckBotSpawn();
 
@@ -1551,6 +1554,11 @@ int BotAIStartFrame(int time) {
 
 	floattime = trap_AAS_Time();
 
+	//Collect data here.
+	adaptiveAgents = BotStateToNEAT(neatInput,botstates);
+	fd = trap_Adam_Com_Open_Pipe(PIPENAME,0);
+	trap_Adam_Com_Write(fd,neatInput,adaptiveAgents);
+	trap_Adam_Com_Close_Pipe(fd);
 	// execute scheduled bot AI
 	for( i = 0; i < MAX_CLIENTS; i++ ) {
 		if( !botstates[i] || !botstates[i]->inuse ) {
@@ -1564,12 +1572,15 @@ int BotAIStartFrame(int time) {
 
 			if (!trap_AAS_Initialized()) return qfalse;
 
-			if (g_entities[i].client->pers.connected == CON_CONNECTED) {
-				BotAI(i, (float) thinktime / 1000);
+			if (g_entities[i].client->pers.connected == CON_CONNECTED) 
+			{
+				if(botstates[i]->adaptive)
+					BotAdamAgent(i,(float)thinktime/1000,neatInput[i]);
+				else
+					BotAI(i, (float) thinktime / 1000);
 			}
 		}
 	}
-
 
 	// execute bot user commands every frame
 	for( i = 0; i < MAX_CLIENTS; i++ ) {
@@ -1583,7 +1594,7 @@ int BotAIStartFrame(int time) {
 		BotUpdateInput(botstates[i], time, elapsed_time);
 		trap_BotUserCommand(botstates[i]->client, &botstates[i]->lastucmd);
 	}
-
+	
 	return qtrue;
 }
 
@@ -1718,3 +1729,172 @@ int BotAIShutdown( int restart ) {
 	return qtrue;
 }
 
+/*
+==============
+ADAM Functions
+==============
+*/
+void BotAdamAgent(int clientNum,float thinktime, float *neatInput)
+{
+	bot_state_t *bs;
+	int i;
+
+	trap_EA_ResetInput(clientNum);
+
+	bs = botstates[clientNum];
+
+	// From BotAI
+	if(!bs || !bs->inuse)
+	{
+		BotAI_Print(PRT_FATAL, "BotAI: No setup");
+		return;
+	}
+
+	if(!BotAI_GetClientState(clientNum, &bs->cur_ps))
+	{
+		BotAI_Print(PRT_FATAL,"Failed to get players state from %d\n",clientNum);
+		return;
+	}
+	AdamBotChatSetup(clientNum,bs);
+    if(BotIsDead(bs))
+	{
+		trap_EA_Respawn(bs->client);
+		return;
+	}
+	for(i = 0; i<3;i++)
+	{
+		bs->viewangles[i] = AngleMod(bs->viewangles[i]+SHORT2ANGLE(bs->cur_ps.delta_angles[i]));
+	}
+
+	bs->ltime += thinktime;
+	bs->thinktime = thinktime;
+
+	// Vector copies
+	VectorCopy(bs->cur_ps.origin,bs->origin);
+	VectorCopy(bs->cur_ps.origin,bs->eye);
+	bs->eye[2] += bs->cur_ps.viewheight;
+
+	bs->areanum = BotPointAreaNum(bs->origin);
+
+
+	/*
+	=======================
+	START OF NEURAL NETWORK
+	=======================	
+	*/
+
+	AdamBotIntermission(bs);
+	BotResetNodeSwitches();
+
+	bs->lastframe_health = bs->inventory[INVENTORY_HEALTH];
+	bs->lasthitcount = bs->cur_ps.persistant[PERS_HITS];
+	trap_EA_SelectWeapon(bs->client,1);
+	trap_EA_Attack(bs->client);
+
+	//subtract the delta angles
+	for(i = 0;i<3;i++)
+	{
+		bs->viewangles[i] = AngleMod(bs->viewangles[i]-SHORT2ANGLE(bs->cur_ps.delta_angles[i]));
+	}
+	/*
+	=====================
+	END OF NEURAL NETWORK
+	=====================
+	*/
+
+}
+
+// Returns numbers of adaptive agents
+int BotStateToNEAT(float neatArray[64][19], bot_state_t **bs)
+{
+	int i, amount;
+	amount = 0;
+	for(i = 0; i < MAX_CLIENTS;i++)
+	{
+		if(bs[i]->adaptive !=2)
+			continue;
+
+		//Initialization
+		neatArray[i][0] = 2;
+		neatArray[i][1] = bs[i]->inuse;
+
+		neatArray[i][2] = bs[i]->client;
+		neatArray[i][3] = bs[i]->weaponnum;
+		// Own origin vector 
+		neatArray[i][4] = bs[i]->origin[0];
+		neatArray[i][5] = bs[i]->origin[1];
+		neatArray[i][6] = bs[i]->origin[2];
+		// Own Velocity
+		neatArray[i][7] = bs[i]->velocity[0];
+		neatArray[i][8] = bs[i]->velocity[1];
+		neatArray[i][9] = bs[i]->velocity[2];
+		// View angle
+		neatArray[i][10] = bs[i]->viewangles[0];
+		neatArray[i][11] = bs[i]->viewangles[1];
+		neatArray[i][12] = bs[i]->viewangles[2];
+		// Enemy Origin 
+		neatArray[i][13] = bs[i]->enemyorigin[0];
+		neatArray[i][14] = bs[i]->enemyorigin[1];
+		neatArray[i][15] = bs[i]->enemyorigin[2];
+		// Enemy Velocity
+		neatArray[i][16] = bs[i]->enemyvelocity[0];
+		neatArray[i][17] = bs[i]->enemyvelocity[1];
+		neatArray[i][18] = bs[i]->enemyvelocity[2];
+
+		amount++;
+	}
+	return amount;
+	
+}
+//Used to keep the bot active
+void AdamBotChatSetup(int client, bot_state_t *bs)
+{	
+	char buf[1024], *args;
+	while( trap_BotGetServerCommand(client, buf, sizeof(buf)) ) {
+	//have buf point to the command and args to the command arguments
+		args = strchr( buf, ' ');
+		if (!args) continue;
+		*args++ = '\0';
+
+		//remove color espace sequences from the arguments
+		RemoveColorEscapeSequences( args );
+
+		if (!Q_stricmp(buf, "cp "))
+			{ /*CenterPrintf*/ }
+		else if (!Q_stricmp(buf, "cs"))
+			{ /*ConfigStringModified*/ }
+		else if (!Q_stricmp(buf, "print")) {
+			//remove first and last quote from the chat message
+			memmove(args, args+1, strlen(args));
+			args[strlen(args)-1] = '\0';
+			trap_BotQueueConsoleMessage(bs->cs, CMS_NORMAL, args);
+		}
+		else if (!Q_stricmp(buf, "chat")) {
+			//remove first and last quote from the chat message
+			memmove(args, args+1, strlen(args));
+			args[strlen(args)-1] = '\0';
+			trap_BotQueueConsoleMessage(bs->cs, CMS_CHAT, args);
+		}
+		else if (!Q_stricmp(buf, "tchat")) {
+			//remove first and last quote from the chat message
+			memmove(args, args+1, strlen(args));
+			args[strlen(args)-1] = '\0';
+			trap_BotQueueConsoleMessage(bs->cs, CMS_CHAT, args);
+		}
+#ifdef MISSIONPACK
+		else if (!Q_stricmp(buf, "vchat")) {
+			BotVoiceChatCommand(bs, SAY_ALL, args);
+		}
+		else if (!Q_stricmp(buf, "vtchat")) {
+			BotVoiceChatCommand(bs, SAY_TEAM, args);
+		}
+		else if (!Q_stricmp(buf, "vtell")) {
+			BotVoiceChatCommand(bs, SAY_TELL, args);
+		}
+#endif
+		else if (!Q_stricmp(buf, "scores"))
+			{ /*FIXME: parse scores?*/ }
+		else if (!Q_stricmp(buf, "clientLevelShot"))
+			{ /*ignore*/ }
+	}
+}

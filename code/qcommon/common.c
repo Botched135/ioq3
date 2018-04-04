@@ -3809,7 +3809,40 @@ void trap_Adam_Com_Read(int file, char* outputArray,int bufferSize)
 {
 	read(file,outputArray,bufferSize);
 }
-void trap_Adam_Com_Write(int file, char* inputArray,int bufferSize)
+void trap_Adam_Com_Write(int file, float neatArray[MAX_CLIENTS][19],int adaptiveAgents)
 {
-	write(file,inputArray, bufferSize);
+	int i, counter;
+	char *writeArray;
+	char temp[88];
+
+	counter = 0;
+	writeArray = malloc(880);
+	for(i = 0; i<MAX_CLIENTS;i++)
+	{
+		if(neatArray[i][0] == 2 && neatArray[i][1])
+		{
+	
+		//data needs to be normalized
+		snprintf(temp,88,
+		"[%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f]:", 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0
+		/*neatArray[i][2],neatArray[i][3],neatArray[i][4],neatArray[i][5],neatArray[i][6],
+		neatArray[i][7],neatArray[i][8],neatArray[i][9],neatArray[i][10],neatArray[i][11],neatArray[i][12],
+		neatArray[i][13],neatArray[i][14],neatArray[i][15],neatArray[i][16],neatArray[i][17],neatArray[i][18]*/);
+		
+		
+		strcat(writeArray,temp);
+		counter++;
+		}
+	}
+	
+	if(counter >0)
+	{
+        write(file,writeArray, strlen(writeArray));
+	}
+
+	free(writeArray);
+}
+void trap_Adam_Com_Array_To_Action(float* outputArray, char* data)
+{
+
 }
