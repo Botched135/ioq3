@@ -5227,9 +5227,7 @@ BotDeathmatchAI
 void BotDeathmatchAI(bot_state_t *bs, float thinktime) {
 	char gender[144], name[144];
 	char userinfo[MAX_INFO_STRING];
-	char output[80],input[80];
 	int i;
-	int fd,close;
 
 	//if the bot has just been setup
 	if (bs->setupcount > 0) {
@@ -5257,7 +5255,7 @@ void BotDeathmatchAI(bot_state_t *bs, float thinktime) {
 		if(strcmp(bs->settings.characterfile,"bots/adam_c.c")==0)
 		{
 			bs->adaptive = 2;
-
+			bs->resetFlag = 2;
 			G_Printf("ADAPTIVE AGENT INITIALIZED\n");
 		}
 		BotSetupAlternativeRouteGoals();

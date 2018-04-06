@@ -3816,15 +3816,15 @@ void trap_Adam_Com_Write(int file, float neatArray[MAX_CLIENTS][19],int adaptive
 	char temp[88];
 
 	counter = 0;
-	writeArray = malloc(880);
+	writeArray = malloc(860);
 	for(i = 0; i<MAX_CLIENTS;i++)
 	{
 		if(neatArray[i][0] == 2 && neatArray[i][1])
 		{
 	
 		//data needs to be normalized
-		snprintf(temp,88,
-		"[%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f]:", 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0
+		snprintf(temp,86,
+		"%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f:", 1.02, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0
 		/*neatArray[i][2],neatArray[i][3],neatArray[i][4],neatArray[i][5],neatArray[i][6],
 		neatArray[i][7],neatArray[i][8],neatArray[i][9],neatArray[i][10],neatArray[i][11],neatArray[i][12],
 		neatArray[i][13],neatArray[i][14],neatArray[i][15],neatArray[i][16],neatArray[i][17],neatArray[i][18]*/);

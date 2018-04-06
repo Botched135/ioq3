@@ -274,6 +274,7 @@ typedef struct bot_state_s
 
 	//FOR ADAPTIVE AGENT
 	int adaptive;
+	int resetFlag;
 } bot_state_t;
 
 //resets the whole bot state

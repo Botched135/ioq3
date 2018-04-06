@@ -1410,7 +1410,7 @@ int BotAIStartFrame(int time) {
 	static int lastbotthink_time;
 	// FOR ADAM
 	float neatInput[MAX_CLIENTS][19];
-
+    
 	G_CheckBotSpawn();
 
 	trap_Cvar_Update(&bot_rocketjump);
@@ -1444,10 +1444,32 @@ int BotAIStartFrame(int time) {
 			botstates[i]->lastucmd.upmove = 0;
 			botstates[i]->lastucmd.buttons = 0;
 			botstates[i]->lastucmd.serverTime = time;
+			//RESET THE BOT
+			if(botstates[i]->resetFlag)
+			{
+				botstates[i]->num_deaths = 0;
+				botstates[i]->num_kills = 0;
+				botstates[i]->lasthitcount = 0;
+				botstates[i]->cur_ps.persistant[PERS_HITS] = 0;
+				trap_EA_Respawn(i);
+				botstates[i]->resetFlag = 0;
+			}
+			
 			trap_BotUserCommand(botstates[i]->client, &botstates[i]->lastucmd);
 		}
 		return qtrue;
 	}
+
+	for( i = 0; i < MAX_CLIENTS; i++ ) 
+	{
+			if( !botstates[i] || !botstates[i]->inuse )
+				continue;
+			if( g_entities[i].client->pers.connected != CON_CONNECTED )
+				continue;
+		
+		botstates[i]->resetFlag = 2;
+	}
+	
 
 	if (bot_memorydump.integer) {
 		trap_BotLibVarSet("memorydump", "1");
@@ -1553,7 +1575,6 @@ int BotAIStartFrame(int time) {
 	}
 
 	floattime = trap_AAS_Time();
-
 	//Collect data here.
 	adaptiveAgents = BotStateToNEAT(neatInput,botstates);
 	fd = trap_Adam_Com_Open_Pipe(PIPENAME,0);
@@ -1756,11 +1777,6 @@ void BotAdamAgent(int clientNum,float thinktime, float *neatInput)
 		return;
 	}
 	AdamBotChatSetup(clientNum,bs);
-    if(BotIsDead(bs))
-	{
-		trap_EA_Respawn(bs->client);
-		return;
-	}
 	for(i = 0; i<3;i++)
 	{
 		bs->viewangles[i] = AngleMod(bs->viewangles[i]+SHORT2ANGLE(bs->cur_ps.delta_angles[i]));
@@ -1784,6 +1800,11 @@ void BotAdamAgent(int clientNum,float thinktime, float *neatInput)
 	*/
 
 	AdamBotIntermission(bs);
+	if(BotIsDead(bs))
+	{
+		trap_EA_Respawn(bs->client);
+		return;
+	}
 	BotResetNodeSwitches();
 
 	bs->lastframe_health = bs->inventory[INVENTORY_HEALTH];
