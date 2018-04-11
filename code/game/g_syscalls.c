@@ -809,7 +809,7 @@ void trap_Adam_Com_Write(int file, float neatArray[MAX_CLIENTS][19], int adaptiv
 	syscall(ADAM_COM_WRITE_PIPE,file,neatArray,adaptiveAgents);
 }
 
-void trap_Adam_Com_Array_To_Action(float* outputArray, char* data)
+void trap_Adam_Com_Array_To_Action(float outputArray[MAX_CLIENTS][10], char* data)
 {
 	syscall(ADAM_COM_ARRAY_TO_ACTION,outputArray,data);
 }

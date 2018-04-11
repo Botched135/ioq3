@@ -3842,7 +3842,34 @@ void trap_Adam_Com_Write(int file, float neatArray[MAX_CLIENTS][19],int adaptive
 
 	free(writeArray);
 }
-void trap_Adam_Com_Array_To_Action(float* outputArray, char* data)
+
+void trap_Adam_Com_Array_To_Action(float outputArray[MAX_CLIENTS][10], char* data)
 {
+	char* tokenHolder;
+	int clientNum, counter;
+	float valueHolder;
+
+	counter = 0;
+	tokenHolder = strtok(data,",");
+	clientNum = atoi(tokenHolder);
+	while(tokenHolder != NULL)
+	{
+		tokenHolder = strtok(NULL,",");
+		valueHolder = atof(tokenHolder);
+		if(valueHolder < 0)
+		{
+			tokenHolder = strtok(NULL,",");
+			clientNum = atoi(tokenHolder);
+			counter = 0;
+			continue;
+		}
+
+		outputArray[clientNum][counter] = valueHolder;
+		counter++;
+	}
+	
+	//Consider setting in a negative number to refere to EOL
+
+
 
 }
