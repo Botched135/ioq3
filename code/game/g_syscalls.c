@@ -800,9 +800,9 @@ int trap_Adam_Com_Close_Pipe(int fd)
 {
 	return syscall(ADAM_COM_CLOSE_PIPE,fd);
 }
-void  trap_Adam_Com_Read(int file, char* outputArray, int bufferSize)
+void  trap_Adam_Com_Read(int file, char* outputArray, int adaptiveAgents)
 {
-	syscall(ADAM_COM_READ_PIPE,file,outputArray,bufferSize);
+	syscall(ADAM_COM_READ_PIPE,file,outputArray,adaptiveAgents);
 }
 void trap_Adam_Com_Write(int file, float neatArray[MAX_CLIENTS][19], int adaptiveAgents)
 {

@@ -1323,6 +1323,7 @@ when the level is changed
 void BotResetState(bot_state_t *bs) {
 	int client, entitynum, inuse;
 	int movestate, goalstate, chatstate, weaponstate;
+	int adaptive;
 	bot_settings_t settings;
 	int character;
 	playerState_t ps;							//current player state
@@ -1340,6 +1341,10 @@ void BotResetState(bot_state_t *bs) {
 	chatstate = bs->cs;
 	weaponstate = bs->ws;
 	entergame_time = bs->entergame_time;
+	if(bs->adaptive >1)
+		adaptive = bs->adaptive;
+	else
+	    adaptive = 0;
 	//free checkpoints and patrol points
 	BotFreeWaypoints(bs->checkpoints);
 	BotFreeWaypoints(bs->patrolpoints);
@@ -1357,6 +1362,7 @@ void BotResetState(bot_state_t *bs) {
 	bs->entitynum = entitynum;
 	bs->character = character;
 	bs->entergame_time = entergame_time;
+	bs->adaptive = adaptive;
 	//reset several states
 	if (bs->ms) trap_BotResetMoveState(bs->ms);
 	if (bs->gs) trap_BotResetGoalState(bs->gs);
@@ -1401,7 +1407,7 @@ BotAIStartFrame
 ==================
 */
 int BotAIStartFrame(int time) {
-	int i,adaptiveAgents,fd;
+	int i,adaptiveAgents,pipeIn,pipeOut;
 	gentity_t	*ent;
 	bot_entitystate_t state;
 	int elapsed_time, thinktime;
@@ -1410,6 +1416,7 @@ int BotAIStartFrame(int time) {
 	static int lastbotthink_time;
 	// FOR ADAM
 	float neatInput[MAX_CLIENTS][19];
+	char neatOutput[88];
     
 	G_CheckBotSpawn();
 
@@ -1576,10 +1583,19 @@ int BotAIStartFrame(int time) {
 
 	floattime = trap_AAS_Time();
 	//Collect data here.
+	// WRITE DATA
 	adaptiveAgents = BotStateToNEAT(neatInput,botstates);
-	fd = trap_Adam_Com_Open_Pipe(PIPENAME,0);
-	trap_Adam_Com_Write(fd,neatInput,adaptiveAgents);
-	trap_Adam_Com_Close_Pipe(fd);
+	pipeOut = trap_Adam_Com_Open_Pipe(PIPENAME,0);
+	trap_Adam_Com_Write(pipeOut,neatInput,adaptiveAgents);
+	trap_Adam_Com_Close_Pipe(pipeOut);
+
+	
+	// READ DATA
+	pipeIn = trap_Adam_Com_Open_Pipe(PIPENAME,1);
+	trap_Adam_Com_Read(pipeIn,neatOutput,adaptiveAgents);
+	trap_Adam_Com_Close_Pipe(pipeIn);
+	G_Printf("%s\n",neatOutput);
+	
 	// execute scheduled bot AI
 	for( i = 0; i < MAX_CLIENTS; i++ ) {
 		if( !botstates[i] || !botstates[i]->inuse ) {

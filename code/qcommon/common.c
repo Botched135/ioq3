@@ -3805,13 +3805,17 @@ int trap_Adam_Com_Close_Pipe(int fd)
 {
 	return close(fd);
 }
-void trap_Adam_Com_Read(int file, char* outputArray,int bufferSize)
+void trap_Adam_Com_Read(int file, char* outputArray,int adaptiveAgents)
 {
-	read(file,outputArray,bufferSize);
+	int returnVal;
+	int bufferSize = adaptiveAgents*28;
+	returnVal = read(file,outputArray,bufferSize);
+	if(returnVal < 0)
+		printf("READ ERROR! \n");
 }
 void trap_Adam_Com_Write(int file, float neatArray[MAX_CLIENTS][19],int adaptiveAgents)
 {
-	int i, counter;
+	int i, counter, returnVal;
 	char *writeArray;
 	char temp[88];
 
@@ -3837,9 +3841,12 @@ void trap_Adam_Com_Write(int file, float neatArray[MAX_CLIENTS][19],int adaptive
 	
 	if(counter >0)
 	{
-        write(file,writeArray, strlen(writeArray));
+		
+        returnVal=write(file,writeArray, strlen(writeArray));
+		if(returnVal < 0)
+			printf("WRITE ERROR");
 	}
-
+    
 	free(writeArray);
 }
 
