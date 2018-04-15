@@ -3855,17 +3855,29 @@ void trap_Adam_Com_Array_To_Action(float outputArray[MAX_CLIENTS][10], char* dat
 	char* tokenHolder;
 	int clientNum, counter;
 	float valueHolder;
-
+    
 	counter = 0;
 	tokenHolder = strtok(data,",");
+	if(!strlen(tokenHolder))
+		return;
+
 	clientNum = atoi(tokenHolder);
+	
 	while(tokenHolder != NULL)
 	{
+
 		tokenHolder = strtok(NULL,",");
+		
+		if(tokenHolder == NULL)
+			break;
+		
 		valueHolder = atof(tokenHolder);
+		
 		if(valueHolder < 0)
 		{
 			tokenHolder = strtok(NULL,",");
+			if(tokenHolder == NULL)
+				break;
 			clientNum = atoi(tokenHolder);
 			counter = 0;
 			continue;
@@ -3874,9 +3886,4 @@ void trap_Adam_Com_Array_To_Action(float outputArray[MAX_CLIENTS][10], char* dat
 		outputArray[clientNum][counter] = valueHolder;
 		counter++;
 	}
-	
-	//Consider setting in a negative number to refere to EOL
-
-
-
 }

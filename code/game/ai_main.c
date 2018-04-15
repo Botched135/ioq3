@@ -1417,6 +1417,8 @@ int BotAIStartFrame(int time) {
 	// FOR ADAM
 	float neatInput[MAX_CLIENTS][19];
 	char neatOutput[88];
+	// FINAL NUMBER IS DEFINED BY HOW MANY ACTIONS IT CAN TAKE
+	float neatActions[MAX_CLIENTS][10];
     
 	G_CheckBotSpawn();
 
@@ -1594,7 +1596,13 @@ int BotAIStartFrame(int time) {
 	pipeIn = trap_Adam_Com_Open_Pipe(PIPENAME,1);
 	trap_Adam_Com_Read(pipeIn,neatOutput,adaptiveAgents);
 	trap_Adam_Com_Close_Pipe(pipeIn);
-	G_Printf("%s\n",neatOutput);
+	
+	// TRANSLATE STRING DATA TO FLOAT ARRAY
+	if(strlen(neatOutput) >0)
+	{
+		trap_Adam_Com_Array_To_Action(neatActions,neatOutput);
+		G_Printf("%f",neatActions[0][0]);
+	}
 	
 	// execute scheduled bot AI
 	for( i = 0; i < MAX_CLIENTS; i++ ) {
@@ -1612,7 +1620,7 @@ int BotAIStartFrame(int time) {
 			if (g_entities[i].client->pers.connected == CON_CONNECTED) 
 			{
 				if(botstates[i]->adaptive)
-					BotAdamAgent(i,(float)thinktime/1000,neatInput[i]);
+					BotAdamAgent(i,(float)thinktime/1000,neatActions[i]);
 				else
 					BotAI(i, (float) thinktime / 1000);
 			}
