@@ -1586,7 +1586,7 @@ int BotAIStartFrame(int time) {
 	floattime = trap_AAS_Time();
 	//Collect data here.
 	// WRITE DATA
-	adaptiveAgents = BotStateToNEAT(neatInput,botstates);
+	/*adaptiveAgents = BotStateToNEAT(neatInput,botstates);
 	pipeOut = trap_Adam_Com_Open_Pipe(PIPENAME,0);
 	trap_Adam_Com_Write(pipeOut,neatInput,adaptiveAgents);
 	trap_Adam_Com_Close_Pipe(pipeOut);
@@ -1601,9 +1601,9 @@ int BotAIStartFrame(int time) {
 	if(strlen(neatOutput) >0)
 	{
 		trap_Adam_Com_Array_To_Action(neatActions,neatOutput);
-		G_Printf("%f",neatActions[0][0]);
+		//G_Printf("First:%.2f, Second: %.2f, Third: %.2f\n",neatActions[0][0],neatActions[1][0],neatActions[2][0]);
 	}
-	
+	*/
 	// execute scheduled bot AI
 	for( i = 0; i < MAX_CLIENTS; i++ ) {
 		if( !botstates[i] || !botstates[i]->inuse ) {
@@ -1619,9 +1619,9 @@ int BotAIStartFrame(int time) {
 
 			if (g_entities[i].client->pers.connected == CON_CONNECTED) 
 			{
-				if(botstates[i]->adaptive)
+				/*if(botstates[i]->adaptive)
 					BotAdamAgent(i,(float)thinktime/1000,neatActions[i]);
-				else
+				else*/
 					BotAI(i, (float) thinktime / 1000);
 			}
 		}
@@ -1779,7 +1779,7 @@ int BotAIShutdown( int restart ) {
 ADAM Functions
 ==============
 */
-void BotAdamAgent(int clientNum,float thinktime, float *neatInput)
+int BotAdamAgent(int clientNum,float thinktime, float *neatInput)
 {
 	bot_state_t *bs;
 	int i;
@@ -1792,13 +1792,13 @@ void BotAdamAgent(int clientNum,float thinktime, float *neatInput)
 	if(!bs || !bs->inuse)
 	{
 		BotAI_Print(PRT_FATAL, "BotAI: No setup");
-		return;
+		return qfalse;
 	}
 
 	if(!BotAI_GetClientState(clientNum, &bs->cur_ps))
 	{
 		BotAI_Print(PRT_FATAL,"Failed to get players state from %d\n",clientNum);
-		return;
+		return qfalse;
 	}
 	AdamBotChatSetup(clientNum,bs);
 	for(i = 0; i<3;i++)
@@ -1822,35 +1822,67 @@ void BotAdamAgent(int clientNum,float thinktime, float *neatInput)
 	START OF NEURAL NETWORK
 	=======================	
 	*/
+	/*
+	MOVE_WALK						1
+    MOVE_CROUCH						2
+    MOVE_JUMP						4
+    MOVE_GRAPPLE					8
+	MOVE_ROCKETJUMP					16
+    MOVE_BFGJUMP					32
+	*/
 
+	/*
+	FUNCTIONS:
+	BotChat_HitNoDeath(bs)
+	*/
+	bs->flags &= ~BFL_IDEALVIEWSET; 
 	AdamBotIntermission(bs);
+	
+	if (BotIsDead(bs) && !bs->respawn_wait) 
+		bs->respawn_wait = qtrue;
+
 	if(BotIsDead(bs))
 	{
 		trap_EA_Respawn(bs->client);
-		return;
+		return qtrue;
 	}
+	else
+		bs->respawn_wait = qfalse;
+	BotSetupForMovement(bs);
 	BotResetNodeSwitches();
+	//bs->ainode = AIEnter_Stand;
+	for (i = 0; i < MAX_NODESWITCHES; i++) 
+	{
+		if (bs->ainode(bs)) break;
+	}
+	
+	
+	
+	
+	/*ATTACK */
+	AdamAttack(bs);
+
 
 	bs->lastframe_health = bs->inventory[INVENTORY_HEALTH];
 	bs->lasthitcount = bs->cur_ps.persistant[PERS_HITS];
-	trap_EA_SelectWeapon(bs->client,1);
-	trap_EA_Attack(bs->client);
-
 	//subtract the delta angles
 	for(i = 0;i<3;i++)
 	{
 		bs->viewangles[i] = AngleMod(bs->viewangles[i]-SHORT2ANGLE(bs->cur_ps.delta_angles[i]));
 	}
+
+	AdamSelectWeapon(bs,0);
 	/*
 	=====================
 	END OF NEURAL NETWORK
 	=====================
 	*/
+	return qtrue;
 
 }
 
 // Returns numbers of adaptive agents
-int BotStateToNEAT(float neatArray[64][19], bot_state_t **bs)
+int BotStateToNEAT(float neatArray[MAX_CLIENTS][19], bot_state_t **bs)
 {
 	int i, amount;
 	amount = 0;
@@ -1865,31 +1897,218 @@ int BotStateToNEAT(float neatArray[64][19], bot_state_t **bs)
 
 		neatArray[i][2] = bs[i]->client;
 		neatArray[i][3] = bs[i]->weaponnum;
+
+		if(bs[i]->lastframe_health < 0)
+			neatArray[i][4] = 0;
+		else
+			neatArray[i][4] = bs[i]->lastframe_health;
 		// Own origin vector 
-		neatArray[i][4] = bs[i]->origin[0];
-		neatArray[i][5] = bs[i]->origin[1];
-		neatArray[i][6] = bs[i]->origin[2];
+		neatArray[i][5] = bs[i]->origin[0];
+		neatArray[i][6] = bs[i]->origin[1];
+		neatArray[i][7] = bs[i]->origin[2];
 		// Own Velocity
-		neatArray[i][7] = bs[i]->velocity[0];
-		neatArray[i][8] = bs[i]->velocity[1];
-		neatArray[i][9] = bs[i]->velocity[2];
+		neatArray[i][8] = bs[i]->velocity[0];
+		neatArray[i][9] = bs[i]->velocity[1];
+		neatArray[i][10] = bs[i]->velocity[2];
 		// View angle
-		neatArray[i][10] = bs[i]->viewangles[0];
-		neatArray[i][11] = bs[i]->viewangles[1];
-		neatArray[i][12] = bs[i]->viewangles[2];
+		neatArray[i][11] = bs[i]->viewangles[0];
+		neatArray[i][12] = bs[i]->viewangles[1];
+		neatArray[i][13] = bs[i]->viewangles[2];
 		// Enemy Origin 
-		neatArray[i][13] = bs[i]->enemyorigin[0];
-		neatArray[i][14] = bs[i]->enemyorigin[1];
-		neatArray[i][15] = bs[i]->enemyorigin[2];
+		neatArray[i][14] = bs[i]->enemyorigin[0];
+		neatArray[i][15] = bs[i]->enemyorigin[1];
+		neatArray[i][16] = bs[i]->enemyorigin[2];
 		// Enemy Velocity
-		neatArray[i][16] = bs[i]->enemyvelocity[0];
-		neatArray[i][17] = bs[i]->enemyvelocity[1];
-		neatArray[i][18] = bs[i]->enemyvelocity[2];
+		neatArray[i][17] = bs[i]->enemyvelocity[0];
+		neatArray[i][18] = bs[i]->enemyvelocity[1];
+		neatArray[i][19] = bs[i]->enemyvelocity[2];
+
+		// CONSIDERATIONS FOR ADDITIONAL INPUT
+		/*
+		ISCROUCHING
+		ISINAIR
+		AMMO OF CURRENT WEAPON
+		ENEMY CROUCHING
+		CHANGE ORIGIN TO DIRECTION TO ENEMY 
+		*/
 
 		amount++;
 	}
 	return amount;
 	
+}
+
+void NormalizeNeatInput(float neatArray[MAX_CLIENTS][19])
+{
+	int i;
+
+	for(i = 0; i < MAX_CLIENTS;i++)
+	{
+		if(neatArray[i][0] !=2)
+			continue;
+			//Initialization
+
+		neatArray[i][3] = neatArray[i][3]/9;
+		neatArray[i][4] = neatArray[i][4]/200;
+		// Own origin vector 
+		neatArray[i][5] = neatArray[i][4];
+		neatArray[i][6] = neatArray[i][5];
+		neatArray[i][7] = neatArray[i][4];
+		// Own Velocity
+		neatArray[i][8] = (neatArray[i][7]+320)/320;
+		neatArray[i][9] = (neatArray[i][8]+320)/320;
+		neatArray[i][10] = (neatArray[i][9]+270)/270;
+		// View angle
+		neatArray[i][11] = neatArray[i][10]/360;
+		neatArray[i][12] = neatArray[i][11]/360;
+		neatArray[i][13] = neatArray[i][12]/360;
+		// Enemy Origin 
+		neatArray[i][14] = neatArray[i][13];
+		neatArray[i][15] = neatArray[i][14];
+		neatArray[i][16] = neatArray[i][15];
+		// Enemy Velocity
+		neatArray[i][17] = (neatArray[i][16]+320)/320;
+		neatArray[i][18] = (neatArray[i][17]+320)/320;
+		neatArray[i][19] = (neatArray[i][18]+270)/270;
+	}
+}
+int AdamAttack(bot_state_t* bs)
+{
+	weaponinfo_t weaponInfo;
+	int ammoval = 0;
+	trap_BotGetWeaponInfo(bs->ws,bs->weaponnum,&weaponInfo);
+
+	if(weaponInfo.flags & WFL_FIRERELEASED)
+	{
+		if(bs->flags & BFL_ATTACKED)
+		{
+			trap_EA_Attack(bs->client);
+		}
+	}
+	else
+	{
+		trap_EA_Attack(bs->client);
+	}
+
+	bs->flags ^= BFL_ATTACKED;
+
+	return qtrue;
+	//CONSIDER ADDING AMMO HERE 
+}
+int AdamSelectWeapon(bot_state_t* bs, float weaponIndex)
+{
+	int ammoval;
+	int convertedWeapon;
+	convertedWeapon = (weaponIndex*9)+1;
+	if(convertedWeapon < 1)
+	{
+		G_Printf("Client %i: WEAPON SELECTION FAULTY \n",bs->client);
+		return qfalse;
+	}
+
+	switch(convertedWeapon)
+	{
+		case 1:
+			if(bs->inventory[INVENTORY_GAUNTLET])
+				bs->weaponnum = WP_GAUNTLET;
+			else
+				ammoval = -1;
+			break;
+		case 2:
+			if(bs->inventory[INVENTORY_MACHINEGUN])
+				bs->weaponnum=WP_MACHINEGUN;
+			else
+				ammoval = -1;
+			break;
+		case 3:
+			if(bs->inventory[INVENTORY_SHOTGUN])
+				bs->weaponnum=WP_SHOTGUN;
+			else
+				ammoval = -1;
+			break;
+		case 4:
+			if(bs->inventory[INVENTORY_GRENADELAUNCHER])
+				bs->weaponnum=WP_GRENADE_LAUNCHER;
+			else
+				ammoval = -1;
+			break;
+		case 5:
+			if(bs->inventory[INVENTORY_ROCKETLAUNCHER])
+				bs->weaponnum=WP_ROCKET_LAUNCHER;
+			else
+				ammoval = -1;
+			break;
+		case 6:
+			if(bs->inventory[INVENTORY_LIGHTNING])
+				bs->weaponnum=WP_LIGHTNING;
+			else
+				ammoval = -1;
+			break;
+		case 7:
+			if(bs->inventory[INVENTORY_RAILGUN])
+				bs->weaponnum=WP_RAILGUN;
+			else
+				ammoval = -1;
+			break;
+		case 8:
+			if(bs->inventory[INVENTORY_PLASMAGUN])
+				bs->weaponnum=WP_PLASMAGUN;
+			else
+				ammoval = -1;
+			break;
+		case 9:
+			if(bs->inventory[INVENTORY_BFG10K])
+				bs->weaponnum=WP_BFG;
+			else
+				ammoval = -1;
+			break;
+		default:
+			ammoval = -1;
+	}
+	if(ammoval == -1)
+	{
+		G_Printf("Not owned weapon\n");
+		
+	}
+	else
+	{
+		switch(bs->weaponnum)
+		{
+			case WP_MACHINEGUN:
+				ammoval = INVENTORY_BULLETS;
+				break;
+			case WP_SHOTGUN:
+				ammoval = INVENTORY_SHELLS;
+				break;
+			case WP_GRENADE_LAUNCHER:
+				ammoval = INVENTORY_GRENADES;
+				break;
+			case WP_ROCKET_LAUNCHER:
+				ammoval = INVENTORY_ROCKETS;
+				break;
+			case WP_LIGHTNING:
+				ammoval = INVENTORY_LIGHTNINGAMMO;
+				break;
+			case WP_RAILGUN:
+				ammoval = INVENTORY_SLUGS;
+				break;
+			case WP_PLASMAGUN:
+				ammoval = INVENTORY_CELLS;
+				break;
+			case WP_BFG:
+				ammoval = INVENTORY_BFGAMMO;
+				break;
+			default:
+				ammoval = 0;
+		}
+		trap_EA_SelectWeapon(bs->client,bs->weaponnum);
+	}
+	return qtrue;
+}
+int AdamJump(bot_state_t* bs)
+{
+	int moveType;	
+	return qtrue;
 }
 //Used to keep the bot active
 void AdamBotChatSetup(int client, bot_state_t *bs)

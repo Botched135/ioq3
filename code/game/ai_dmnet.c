@@ -1443,6 +1443,8 @@ void AIEnter_Seek_ActivateEntity(bot_state_t *bs, char *s) {
 /*
 ==================
 AINode_Seek_Activate_Entity
+
+For activating buttons
 ==================
 */
 int AINode_Seek_ActivateEntity(bot_state_t *bs) {
@@ -1486,6 +1488,7 @@ int AINode_Seek_ActivateEntity(bot_state_t *bs) {
 		return qfalse;
 	}
 	//
+	G_Printf("AINode_Seek_ActivateEntity\n");
 	goal = &bs->activatestack->goal;
 	// initialize target being visible to false
 	targetvisible = qfalse;
@@ -1643,6 +1646,7 @@ int AINode_Seek_ActivateEntity(bot_state_t *bs) {
 /*
 ==================
 AIEnter_Seek_NBG
+Nearby Goal
 ==================
 */
 void AIEnter_Seek_NBG(bot_state_t *bs, char *s) {
@@ -1684,6 +1688,7 @@ int AINode_Seek_NBG(bot_state_t *bs) {
 		return qfalse;
 	}
 	//
+	//G_Printf("AINode_Seek_NBG\n");
 	bs->tfl = TFL_DEFAULT;
 	if (bot_grapple.integer) bs->tfl |= TFL_GRAPPLEHOOK;
 	//if in lava or slime the bot should be able to get out
@@ -1776,6 +1781,7 @@ int AINode_Seek_NBG(bot_state_t *bs) {
 /*
 ==================
 AIEnter_Seek_LTG
+Long Term Goal
 ==================
 */
 void AIEnter_Seek_LTG(bot_state_t *bs, char *s) {
@@ -2147,6 +2153,8 @@ int AINode_Battle_Fight(bot_state_t *bs) {
 /*
 ==================
 AIEnter_Battle_Chase
+
+Chasing hunting down the enemy 
 ==================
 */
 void AIEnter_Battle_Chase(bot_state_t *bs, char *s) {

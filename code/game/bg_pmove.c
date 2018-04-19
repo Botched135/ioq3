@@ -2011,6 +2011,7 @@ void PmoveSingle (pmove_t *pmove) {
 	PM_WaterEvents();
 
 	// snap some parts of playerstate to save network bandwidth
+	//Com_Printf("X: %f \t Y: %f \t Z: %f\n",pm->ps->velocity[0],pm->ps->velocity[1],pm->ps->velocity[2]);
 	trap_SnapVector( pm->ps->velocity );
 }
 

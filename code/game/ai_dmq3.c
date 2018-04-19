@@ -2989,6 +2989,7 @@ int BotFindEnemy(bot_state_t *bs, int curenemy) {
 	}
 #endif
 	//
+	
 	for (i = 0; i < level.maxclients; i++) {
 
 		if (i == bs->client) continue;
@@ -5227,7 +5228,9 @@ BotDeathmatchAI
 void BotDeathmatchAI(bot_state_t *bs, float thinktime) {
 	char gender[144], name[144];
 	char userinfo[MAX_INFO_STRING];
-	int i;
+	vec3_t dir;
+	int i, returnType;
+	weaponinfo_t weaponInfo;
 
 	//if the bot has just been setup
 	if (bs->setupcount > 0) {
@@ -5277,6 +5280,7 @@ void BotDeathmatchAI(bot_state_t *bs, float thinktime) {
 	if(bs->adaptive)
 	{
 		//if the bot entered the game less than 8 seconds ago
+		BotCheckConsoleMessages(bs);
 		if (!bs->entergamechat && bs->entergame_time > FloatTime() - 8) {
 			if (BotChat_EnterGame(bs)) {
 				bs->stand_time = FloatTime() + BotChatTime(bs);
@@ -5284,20 +5288,46 @@ void BotDeathmatchAI(bot_state_t *bs, float thinktime) {
 			}
 			bs->entergamechat = qtrue;
 		}
+		if (BotIsDead(bs) && bs->respawn_wait == qfalse) 
+		{
+			bs->respawn_wait = qtrue;
+			trap_EA_Respawn(bs->client);
+			G_Printf("has respawned \n");
+		if (bs->respawnchat_time) {
+			trap_BotEnterChat(bs->cs, 0, bs->chatto);
+			bs->enemy = -1;
+		}
+		return;
+		}
+		
+		bs->respawn_wait = qfalse;
+		BotResetNodeSwitches();
+		BotSetupForMovement(bs);
+		dir[0] = 1;
+		dir[1] = 15;
+		returnType = trap_BotMoveInDirection(bs->ms,dir,400,MOVE_WALK);
+		
+		for (i = 0; i < MAX_NODESWITCHES; i++) 
+		{
+			if (bs->ainode(bs)) break;
+		}
 		//if the bot removed itself :)
 		if (!bs->inuse) return;
-		/*
-		//Send to pNEAT
-		strcpy(input,"Works\n \0");
-		fd = trap_Adam_Com_Open_Pipe(PIPENAME,0);
-		trap_Adam_Com_Write(fd,input,strlen(input));
-		close = trap_Adam_Com_Close_Pipe(fd);
+			trap_BotGetWeaponInfo(bs->ws,bs->weaponnum,&weaponInfo);
 
-		//Receive from pNEAT
-		fd = trap_Adam_Com_Open_Pipe(PIPENAME,1);
-		trap_Adam_Com_Read(fd,output,80);
-		close = trap_Adam_Com_Close_Pipe(fd);
-		G_Printf("In Q3: %s",output);*/
+		if(weaponInfo.flags & WFL_FIRERELEASED)
+		{
+			if(bs->flags & BFL_ATTACKED)
+			{
+				trap_EA_Attack(bs->client);
+			}
+		}
+		else
+		{
+			trap_EA_Attack(bs->client);
+		}
+
+		bs->flags ^= BFL_ATTACKED;
 		bs->lastframe_health = bs->inventory[INVENTORY_HEALTH];
 		bs->lasthitcount = bs->cur_ps.persistant[PERS_HITS];
 		
@@ -5309,6 +5339,7 @@ void BotDeathmatchAI(bot_state_t *bs, float thinktime) {
 		//if not in the intermission and not in observer mode
 		if (!BotIntermission(bs) && !BotIsObserver(bs)) {
 			//do team AI
+			// does not do anything in Deathmatch
 			BotTeamAI(bs);
 		}
 		//if the bot has no ai node
@@ -5327,10 +5358,9 @@ void BotDeathmatchAI(bot_state_t *bs, float thinktime) {
 		BotResetNodeSwitches();
 		//execute AI nodes
 		for (i = 0; i < MAX_NODESWITCHES; i++) {
-			G_Printf("Iterations: %i \t",bs->ainode(bs));
 			if (bs->ainode(bs)) break;
 		}
-		G_Printf("\n");	
+		//G_Printf("X:%f,Y:%f,Z:%f \n",bs->enemyvelocity[0],bs->enemyvelocity[1],bs->enemyvelocity[2]);
 		//if the bot removed itself :)
 		if (!bs->inuse) return;
 		//if the bot executed too many AI nodes

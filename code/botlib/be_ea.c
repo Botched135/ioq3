@@ -161,6 +161,7 @@ void EA_Attack(int client)
 	bot_input_t *bi;
 
 	bi = &botinputs[client];
+	printf("Hello I am attacking \n");
 
 	bi->actionflags |= ACTION_ATTACK;
 } //end of the function EA_Attack
@@ -385,12 +386,15 @@ void EA_Move(int client, vec3_t dir, float speed)
 	bot_input_t *bi;
 
 	bi = &botinputs[client];
-
+    
 	VectorCopy(dir, bi->dir);
 	//cap speed
 	if (speed > MAX_USERMOVE) speed = MAX_USERMOVE;
 	else if (speed < -MAX_USERMOVE) speed = -MAX_USERMOVE;
+
 	bi->speed = speed;
+
+	//printf("Direction: (%f,%f,%f) \t Speed: %f \n",dir[0],dir[1],dir[2],speed);
 } //end of the function EA_Move
 //===========================================================================
 //
