@@ -2000,6 +2000,7 @@ int AdamSelectWeapon(bot_state_t* bs, float weaponIndex)
 	int ammoval;
 	int convertedWeapon;
 	convertedWeapon = (weaponIndex*9)+1;
+	G_Printf("Client number: %i \n",bs->client);
 	if(convertedWeapon < 1)
 	{
 		G_Printf("Client %i: WEAPON SELECTION FAULTY \n",bs->client);
@@ -2105,9 +2106,21 @@ int AdamSelectWeapon(bot_state_t* bs, float weaponIndex)
 	}
 	return qtrue;
 }
-int AdamJump(bot_state_t* bs)
+/*
+	airstate:
+	0 = jump not begun
+	1 = jump begun
+	2 = jump finished
+
+*/
+int AdamJump(bot_state_t* bs, int airState)
 {
-	int moveType;	
+	int moveType;
+	gentity_t* ent = &g_entities[bs->entitynum];
+	vec3_t va, point, mins, maxs;
+	trace_t trace;
+	bot_moveresult_t moveresult;	
+	
 	return qtrue;
 }
 //Used to keep the bot active

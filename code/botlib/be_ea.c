@@ -161,7 +161,6 @@ void EA_Attack(int client)
 	bot_input_t *bi;
 
 	bi = &botinputs[client];
-	printf("Hello I am attacking \n");
 
 	bi->actionflags |= ACTION_ATTACK;
 } //end of the function EA_Attack

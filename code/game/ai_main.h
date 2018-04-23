@@ -302,4 +302,4 @@ int BotStateToNEAT(float neatArray[MAX_CLIENTS][19], bot_state_t **bs);
 void AdamBotChatSetup(int client, bot_state_t *bs);
 int AdamAttack(bot_state_t* bs);
 int AdamSelectWeapon(bot_state_t* bs, float weaponIndex);
-int AdamJump(bot_state_t* bs);
+int AdamJump(bot_state_t* bs, int airState);
