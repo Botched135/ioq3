@@ -1415,7 +1415,7 @@ int BotAIStartFrame(int time) {
 	static int botlib_residual;
 	static int lastbotthink_time;
 	// FOR ADAM
-	float neatInput[MAX_CLIENTS][19];
+	float neatInput[MAX_CLIENTS][22];
 	// FINAL NUMBER IS DEFINED BY HOW MANY ACTIONS IT CAN TAKE
 	float neatActions[MAX_CLIENTS][10];
     
