@@ -275,6 +275,12 @@ typedef struct bot_state_s
 	//FOR ADAPTIVE AGENT
 	int adaptive;
 	int resetFlag;
+	int enemyCrouch;
+	int (*adamNode)(struct bot_state_s* bs,float* neatData);
+
+	int squaredEnemyDis;
+	vec3_t enemyDir;
+	
 } bot_state_t;
 
 //resets the whole bot state
@@ -298,7 +304,7 @@ int		BotTeamLeader(bot_state_t *bs);
 
 // ADAM functions
 int BotAdamAgent(int clientNum, float thinktime,float *neatInput); 
-int BotStateToNEAT(float neatArray[MAX_CLIENTS][19], bot_state_t **bs);
+int BotStateToNEAT(float neatArray[MAX_CLIENTS][22], bot_state_t **bs);
 void AdamBotChatSetup(int client, bot_state_t *bs);
 int AdamAttack(bot_state_t* bs);
 int AdamSelectWeapon(bot_state_t* bs, float weaponIndex);

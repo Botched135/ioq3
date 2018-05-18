@@ -1416,7 +1416,6 @@ int BotAIStartFrame(int time) {
 	static int lastbotthink_time;
 	// FOR ADAM
 	float neatInput[MAX_CLIENTS][19];
-	char neatOutput[88];
 	// FINAL NUMBER IS DEFINED BY HOW MANY ACTIONS IT CAN TAKE
 	float neatActions[MAX_CLIENTS][10];
     
@@ -1619,9 +1618,9 @@ int BotAIStartFrame(int time) {
 
 			if (g_entities[i].client->pers.connected == CON_CONNECTED) 
 			{
-				/*if(botstates[i]->adaptive)
+				if(botstates[i]->adaptive)
 					BotAdamAgent(i,(float)thinktime/1000,neatActions[i]);
-				else*/
+				else
 					BotAI(i, (float) thinktime / 1000);
 			}
 		}
@@ -1838,30 +1837,16 @@ int BotAdamAgent(int clientNum,float thinktime, float *neatInput)
 	bs->flags &= ~BFL_IDEALVIEWSET; 
 	AdamBotIntermission(bs);
 	
-	if (BotIsDead(bs) && !bs->respawn_wait) 
-		bs->respawn_wait = qtrue;
-
-	if(BotIsDead(bs))
-	{
-		trap_EA_Respawn(bs->client);
-		return qtrue;
-	}
-	else
-		bs->respawn_wait = qfalse;
-	BotSetupForMovement(bs);
+	if (!bs->adamNode) AdamEnter_Seek(bs);
+	
 	BotResetNodeSwitches();
-	//bs->ainode = AIEnter_Stand;
 	for (i = 0; i < MAX_NODESWITCHES; i++) 
 	{
-		if (bs->ainode(bs)) break;
+		if (bs->adamNode(bs,neatInput)) break;
 	}
 	
-	
-	
-	
-	/*ATTACK */
-	AdamAttack(bs);
-
+	if(!bs->inuse)
+		return qfalse;
 
 	bs->lastframe_health = bs->inventory[INVENTORY_HEALTH];
 	bs->lasthitcount = bs->cur_ps.persistant[PERS_HITS];
@@ -1882,7 +1867,7 @@ int BotAdamAgent(int clientNum,float thinktime, float *neatInput)
 }
 
 // Returns numbers of adaptive agents
-int BotStateToNEAT(float neatArray[MAX_CLIENTS][19], bot_state_t **bs)
+int BotStateToNEAT(float neatArray[MAX_CLIENTS][22], bot_state_t **bs)
 {
 	int i, amount;
 	amount = 0;
@@ -1910,25 +1895,30 @@ int BotStateToNEAT(float neatArray[MAX_CLIENTS][19], bot_state_t **bs)
 		neatArray[i][8] = bs[i]->velocity[0];
 		neatArray[i][9] = bs[i]->velocity[1];
 		neatArray[i][10] = bs[i]->velocity[2];
-		// View angle
-		neatArray[i][11] = bs[i]->viewangles[0];
-		neatArray[i][12] = bs[i]->viewangles[1];
-		neatArray[i][13] = bs[i]->viewangles[2];
-		// Enemy Origin 
-		neatArray[i][14] = bs[i]->enemyorigin[0];
-		neatArray[i][15] = bs[i]->enemyorigin[1];
-		neatArray[i][16] = bs[i]->enemyorigin[2];
-		// Enemy Velocity
-		neatArray[i][17] = bs[i]->enemyvelocity[0];
-		neatArray[i][18] = bs[i]->enemyvelocity[1];
-		neatArray[i][19] = bs[i]->enemyvelocity[2];
+		// Self Crounch
+		neatArray[i][11] = bs[i]->cur_ps.pm_flags & PMF_DUCKED;
 
+		// View angle
+		neatArray[i][12] = bs[i]->viewangles[0];
+		neatArray[i][13] = bs[i]->viewangles[1];
+		neatArray[i][14] = bs[i]->viewangles[2];
+		// Enemy Dir 
+		neatArray[i][15] = bs[i]->enemyDir[0];
+		neatArray[i][16] = bs[i]->enemyDir[1];
+		neatArray[i][17] = bs[i]->enemyDir[2];
+		// Enemy Velocity
+		neatArray[i][18] = bs[i]->enemyvelocity[0];
+		neatArray[i][19] = bs[i]->enemyvelocity[1];
+		neatArray[i][20] = bs[i]->enemyvelocity[2];
+
+		// Enemy Crouching
+		neatArray[i][21] = bs[i]->enemyCrouch;
+		
 		// CONSIDERATIONS FOR ADDITIONAL INPUT
 		/*
-		ISCROUCHING
 		ISINAIR
+		ENEMY IN AIR
 		AMMO OF CURRENT WEAPON
-		ENEMY CROUCHING
 		CHANGE ORIGIN TO DIRECTION TO ENEMY 
 		*/
 
@@ -1938,7 +1928,7 @@ int BotStateToNEAT(float neatArray[MAX_CLIENTS][19], bot_state_t **bs)
 	
 }
 
-void NormalizeNeatInput(float neatArray[MAX_CLIENTS][19])
+void NormalizeNeatInput(float neatArray[MAX_CLIENTS][22])
 {
 	int i;
 
@@ -1958,18 +1948,17 @@ void NormalizeNeatInput(float neatArray[MAX_CLIENTS][19])
 		neatArray[i][8] = (neatArray[i][7]+320)/320;
 		neatArray[i][9] = (neatArray[i][8]+320)/320;
 		neatArray[i][10] = (neatArray[i][9]+270)/270;
+		//self crouch (Already normalized)
 		// View angle
-		neatArray[i][11] = neatArray[i][10]/360;
-		neatArray[i][12] = neatArray[i][11]/360;
-		neatArray[i][13] = neatArray[i][12]/360;
-		// Enemy Origin 
-		neatArray[i][14] = neatArray[i][13];
-		neatArray[i][15] = neatArray[i][14];
-		neatArray[i][16] = neatArray[i][15];
+		neatArray[i][12] = neatArray[i][10]/360;
+		neatArray[i][13] = neatArray[i][11]/360;
+		neatArray[i][14] = neatArray[i][12]/360;
+		// Enemy Direction (Already normalized) 
 		// Enemy Velocity
-		neatArray[i][17] = (neatArray[i][16]+320)/320;
-		neatArray[i][18] = (neatArray[i][17]+320)/320;
-		neatArray[i][19] = (neatArray[i][18]+270)/270;
+		neatArray[i][18] = (neatArray[i][16]+320)/320;
+		neatArray[i][19] = (neatArray[i][17]+320)/320;
+		neatArray[i][20] = (neatArray[i][18]+270)/270;
+		// Enemy crouch (already normalized)
 	}
 }
 int AdamAttack(bot_state_t* bs)
@@ -2000,7 +1989,6 @@ int AdamSelectWeapon(bot_state_t* bs, float weaponIndex)
 	int ammoval;
 	int convertedWeapon;
 	convertedWeapon = (weaponIndex*9)+1;
-	G_Printf("Client number: %i \n",bs->client);
 	if(convertedWeapon < 1)
 	{
 		G_Printf("Client %i: WEAPON SELECTION FAULTY \n",bs->client);
@@ -2115,14 +2103,9 @@ int AdamSelectWeapon(bot_state_t* bs, float weaponIndex)
 */
 int AdamJump(bot_state_t* bs, int airState)
 {
-	int moveType;
-	gentity_t* ent = &g_entities[bs->entitynum];
-	vec3_t va, point, mins, maxs;
-	trace_t trace;
-	bot_moveresult_t moveresult;	
-	
 	return qtrue;
 }
+
 //Used to keep the bot active
 void AdamBotChatSetup(int client, bot_state_t *bs)
 {	

@@ -3758,7 +3758,7 @@ void BotMapScripts(bot_state_t *bs) {
 			bs->ideal_viewangles[YAW] = AngleMod(bs->ideal_viewangles[YAW]);
 			//
 			if (InFieldOfVision(bs->viewangles, 20, bs->ideal_viewangles)) {
-				trap_EA_Attack(bs->client);
+				//trap_EA_Attack(bs->client);
 			}
 		}
 	}
@@ -5228,11 +5228,7 @@ BotDeathmatchAI
 void BotDeathmatchAI(bot_state_t *bs, float thinktime) {
 	char gender[144], name[144];
 	char userinfo[MAX_INFO_STRING];
-	vec3_t dir;
-	int i, returnType;
-	weaponinfo_t weaponInfo;
-	char info[1024];
-	aas_entityinfo_t entinfo;
+	int i;
 
 	//if the bot has just been setup
 	if (bs->setupcount > 0) {
@@ -5261,7 +5257,9 @@ void BotDeathmatchAI(bot_state_t *bs, float thinktime) {
 		{
 			bs->adaptive = 2;
 			bs->resetFlag = 2;
+			bs->flags &= ~BFL_IDEALVIEWSET;
 			G_Printf("ADAPTIVE AGENT INITIALIZED\n");
+			return;
 		}
 		BotSetupAlternativeRouteGoals();
 	}
@@ -5278,129 +5276,49 @@ void BotDeathmatchAI(bot_state_t *bs, float thinktime) {
 		//check for air
 		BotCheckAir(bs);
 	}
-
-	if(bs->adaptive)
-	{
-		//if the bot entered the game less than 8 seconds ago
-		BotCheckConsoleMessages(bs);
-		if (!bs->entergamechat && bs->entergame_time > FloatTime() - 8) {
-			if (BotChat_EnterGame(bs)) {
-				bs->stand_time = FloatTime() + BotChatTime(bs);
-				AIEnter_Stand(bs, "BotDeathmatchAI: chat enter game");
-			}
-			bs->entergamechat = qtrue;
-		}
-		if (BotIsDead(bs) && bs->respawn_wait == qfalse) 
-		{
-			trap_BotResetMoveState(bs->ms);
-			trap_BotResetGoalState(bs->gs);
-			trap_BotResetAvoidGoals(bs->gs);
-			trap_BotResetAvoidReach(bs->ms);
-			bs->respawn_wait = qtrue;
-			trap_EA_Respawn(bs->client);
-			G_Printf("has respawned \n");
-			if (bs->respawnchat_time) 
-			{
-				trap_BotEnterChat(bs->cs, 0, bs->chatto);
-				bs->enemy = -1;
-			}
-			return;
-		}
-		
-		bs->respawn_wait = qfalse;
-		BotResetNodeSwitches();
-		BotSetupForMovement(bs);
-		dir[0] = 1;
-		dir[1] = 15;
-		returnType = trap_BotMoveInDirection(bs->ms,dir,400,MOVE_WALK);
-		trap_EA_Jump(bs->client);
-		/*for (i = 0; i < MAX_NODESWITCHES; i++) 
-		{
-			if (bs->ainode(bs)) break;
-		}*/
-		trap_GetServerinfo(info,sizeof(info));
-		for(i=0;i< level.maxclients;i++)
-		{
-			if(i == bs->client) continue;
-
-			BotEntityInfo(i,&entinfo);
-		}
-		//if the bot removed itself :)
-		if (!bs->inuse) return;
-		
-		trap_BotGetWeaponInfo(bs->ws,bs->weaponnum,&weaponInfo);
-		AdamSelectWeapon(bs,0);
-		if(weaponInfo.flags & WFL_FIRERELEASED)
-		{
-			if(bs->flags & BFL_ATTACKED)
-			{
-				trap_EA_Attack(bs->client);
-			}
-		}
-		else
-		{
-			trap_EA_Attack(bs->client);
-		}
-		trap_BotEmptyGoalStack(bs->gs);
-
-		bs->lastframe_health = bs->inventory[INVENTORY_HEALTH];
-		bs->lasthitcount = bs->cur_ps.persistant[PERS_HITS];
-		
+	//check the console messages
+	BotCheckConsoleMessages(bs);
+	//if not in the intermission and not in observer mode
+	if (!BotIntermission(bs) && !BotIsObserver(bs)) {
+		//do team AI
+		// does not do anything in Deathmatch
+		BotTeamAI(bs);
 	}
-	else
-	{
-		//check the console messages
-		BotCheckConsoleMessages(bs);
-		//if not in the intermission and not in observer mode
-		if (!BotIntermission(bs) && !BotIsObserver(bs)) {
-			//do team AI
-			// does not do anything in Deathmatch
-			BotTeamAI(bs);
+	//if the bot has no ai node
+	if (!bs->ainode) {
+		AIEnter_Seek_LTG(bs, "BotDeathmatchAI: no ai node");
+	}	
+	//if the bot entered the game less than 8 seconds ago
+	if (!bs->entergamechat && bs->entergame_time > FloatTime() - 8) {
+		if (BotChat_EnterGame(bs)) {
+			bs->stand_time = FloatTime() + BotChatTime(bs);
+			AIEnter_Stand(bs, "BotDeathmatchAI: chat enter game");
 		}
-		//if the bot has no ai node
-		if (!bs->ainode) {
-			AIEnter_Seek_LTG(bs, "BotDeathmatchAI: no ai node");
-		}	
-		//if the bot entered the game less than 8 seconds ago
-		if (!bs->entergamechat && bs->entergame_time > FloatTime() - 8) {
-			if (BotChat_EnterGame(bs)) {
-				bs->stand_time = FloatTime() + BotChatTime(bs);
-				AIEnter_Stand(bs, "BotDeathmatchAI: chat enter game");
-			}
-			bs->entergamechat = qtrue;
-		}
+		bs->entergamechat = qtrue;
+	}
 	
-		//reset the node switches from the previous frame
-		BotResetNodeSwitches();
-		//execute AI nodes
-		i =0;
-		/*for (i = 0; i < MAX_NODESWITCHES; i++) {
-			if (bs->ainode(bs)) break;
-		}*/
-		//G_Printf("X:%f,Y:%f,Z:%f \n",bs->enemyvelocity[0],bs->enemyvelocity[1],bs->enemyvelocity[2]);
-		//if the bot removed itself :)
-		trap_EA_Jump(bs->client);
-		if (!bs->inuse) return;
-
-		trap_GetServerinfo(info,sizeof(info));
-		for(i=0;i< level.maxclients;i++)
-		{
-			if(i == bs->client) continue;
-
-			BotEntityInfo(i,&entinfo);
-		}
-		//if the bot executed too many AI nodes
-		if (i >= MAX_NODESWITCHES) {
-			trap_BotDumpGoalStack(bs->gs);
-			trap_BotDumpAvoidGoals(bs->gs);
-			BotDumpNodeSwitches(bs);
-			ClientName(bs->client, name, sizeof(name));
-			BotAI_Print(PRT_ERROR, "%s at %1.1f switched more than %d AI nodes\n", name, FloatTime(), MAX_NODESWITCHES);
-		}
-		//
-		bs->lastframe_health = bs->inventory[INVENTORY_HEALTH];
-		bs->lasthitcount = bs->cur_ps.persistant[PERS_HITS];
+	//reset the node switches from the previous frame
+	BotResetNodeSwitches();
+	//execute AI nodes
+	i =0;
+	for (i = 0; i < MAX_NODESWITCHES; i++) {
+		if (bs->ainode(bs)) break;
 	}
+	//G_Printf("X:%f,Y:%f,Z:%f \n",bs->enemyvelocity[0],bs->enemyvelocity[1],bs->enemyvelocity[2]);
+	//if the bot removed itself :)
+	if (!bs->inuse) return;
+
+	//if the bot executed too many AI nodes
+	if (i >= MAX_NODESWITCHES) {
+		trap_BotDumpGoalStack(bs->gs);
+		trap_BotDumpAvoidGoals(bs->gs);
+		BotDumpNodeSwitches(bs);
+		ClientName(bs->client, name, sizeof(name));
+		BotAI_Print(PRT_ERROR, "%s at %1.1f switched more than %d AI nodes\n", name, FloatTime(), MAX_NODESWITCHES);
+	}
+	//
+	bs->lastframe_health = bs->inventory[INVENTORY_HEALTH];
+	bs->lasthitcount = bs->cur_ps.persistant[PERS_HITS];
 }
 
 /*
@@ -5585,4 +5503,206 @@ void AdamBotIntermission(bot_state_t *bs)
 		//check for air
 		BotCheckAir(bs);
 	}
+}
+
+void AdamBotMapScripts(bot_state_t *bs)
+{
+	char info[1024];
+	char mapname[128];
+	int i, shootbutton;
+	float aim_accuracy;
+	aas_entityinfo_t entinfo;
+	vec3_t dir;
+
+	trap_GetServerinfo(info, sizeof(info));
+
+	strncpy(mapname, Info_ValueForKey( info, "mapname" ), sizeof(mapname)-1);
+	mapname[sizeof(mapname)-1] = '\0';
+
+	if (!Q_stricmp(mapname, "q3tourney6") || !Q_stricmp(mapname, "q3tourney6_ctf") || !Q_stricmp(mapname, "mpq3tourney6")) {
+		vec3_t mins = {694, 200, 480}, maxs = {968, 472, 680};
+		vec3_t buttonorg = {304, 352, 920};
+		//NOTE: NEVER use the func_bobbing in q3tourney6
+		bs->tfl &= ~TFL_FUNCBOB;
+		//crush area is higher in mpq3tourney6
+		if (!Q_stricmp(mapname, "mpq3tourney6")) {
+			mins[2] += 64;
+			maxs[2] += 64;
+		}
+		//if the bot is in the bounding box of the crush area
+		if (bs->origin[0] > mins[0] && bs->origin[0] < maxs[0]) {
+			if (bs->origin[1] > mins[1] && bs->origin[1] < maxs[1]) {
+				if (bs->origin[2] > mins[2] && bs->origin[2] < maxs[2]) {
+					return;
+				}
+			}
+		}
+		shootbutton = qfalse;
+		//if an enemy is in the bounding box then shoot the button
+		for (i = 0; i < level.maxclients; i++) {
+
+			if (i == bs->client) continue;
+			//
+			BotEntityInfo(i, &entinfo);
+			//
+			if (!entinfo.valid) continue;
+			//if the enemy isn't dead and the enemy isn't the bot self
+			if (EntityIsDead(&entinfo) || entinfo.number == bs->entitynum) continue;
+			//
+			if (entinfo.origin[0] > mins[0] && entinfo.origin[0] < maxs[0]) {
+				if (entinfo.origin[1] > mins[1] && entinfo.origin[1] < maxs[1]) {
+					if (entinfo.origin[2] > mins[2] && entinfo.origin[2] < maxs[2]) {
+						//if there's a team mate below the crusher
+						if (BotSameTeam(bs, i)) {
+							shootbutton = qfalse;
+							break;
+						}
+						else if (bs->enemy == i) {
+							shootbutton = qtrue;
+						}
+					}
+				}
+			}
+		}
+		if (shootbutton) {
+			bs->flags |= BFL_IDEALVIEWSET;
+			VectorSubtract(buttonorg, bs->eye, dir);
+			vectoangles(dir, bs->ideal_viewangles);
+			aim_accuracy = trap_Characteristic_BFloat(bs->character, CHARACTERISTIC_AIM_ACCURACY, 0, 1);
+			bs->ideal_viewangles[PITCH] += 8 * crandom() * (1 - aim_accuracy);
+			bs->ideal_viewangles[PITCH] = AngleMod(bs->ideal_viewangles[PITCH]);
+			bs->ideal_viewangles[YAW] += 8 * crandom() * (1 - aim_accuracy);
+			bs->ideal_viewangles[YAW] = AngleMod(bs->ideal_viewangles[YAW]);
+			//
+			if (InFieldOfVision(bs->viewangles, 20, bs->ideal_viewangles)) {
+				//trap_EA_Attack(bs->client);
+			}
+		}
+	}
+}
+int AdamFindEnemy(bot_state_t *bs, int currentEnemy)
+{
+	int i, healthDecrease;
+	float squareDist, curSquaredDist, fov, vis;
+	aas_entityinfo_t entinfo, curenemyinfo;
+	playerState_t ps;
+	vec3_t dir, angles;
+
+	healthDecrease = bs->lasthealth > bs->inventory[INVENTORY_HEALTH]+1; //To avoid giving the bot 360 fov when > 100 hp
+
+	bs->lasthealth = bs->inventory[INVENTORY_HEALTH];
+
+	if(currentEnemy >= 0)
+	{
+		BotEntityInfo(currentEnemy,&curenemyinfo);
+		VectorSubtract(curenemyinfo.origin,bs->origin,dir);
+		curSquaredDist = VectorLengthSquared(dir);
+	}
+	else
+		curSquaredDist = 0;
+
+	for(i = 0;i< level.maxclients;i++)
+	{
+		if(i == bs->client) continue;
+
+		if(i == currentEnemy) continue;
+
+		if(g_entities[i].flags & FL_NOTARGET) continue;
+
+		BotEntityInfo(i,&entinfo);
+
+		if(!entinfo.valid) continue;
+
+		if(EntityIsDead(&entinfo) && !EntityIsShooting(&entinfo)) continue;
+
+		//calculate the distance towards the enemy
+		VectorSubtract(entinfo.origin,bs->origin,dir);
+		squareDist = VectorLengthSquared(dir);
+
+		//Around here the distance is considered
+
+		//Notices if the enemy is shooting or we are taking dmg(since there is no lava etc. Else I need to check whether or not the bot is in lava)
+		if(currentEnemy <0 && (healthDecrease || EntityIsShooting(&entinfo)))
+			fov = 360;
+		else
+			fov = 90 +90-(90-(squareDist >Square(810) ? Square(810) : squareDist)/(810*9));
+
+		//visibility 
+		vis = BotEntityVisible(bs->entitynum, bs->eye,bs->viewangles,fov,i);
+		if(vis <=0) continue;
+
+		// If there is no one shooting and enemy is far away
+		if(currentEnemy < 0 && squareDist > Square(100) && !healthDecrease && !EntityIsShooting(&entinfo))
+		{
+			VectorSubtract(bs->origin,entinfo.origin,dir);
+			vectoangles(dir,angles);
+
+			//if it is outside of enemy's field of vision
+			if(!InFieldOfVision(entinfo.angles,90,angles))
+			{
+				BotUpdateBattleInventory(bs,i);
+			}
+		}
+		//found enemy
+		if(currentEnemy >= 0) 
+			bs->enemysight_time = FloatTime()-2; // hmm consider this
+		else
+			bs->enemysight_time = FloatTime();
+
+		bs->enemy = entinfo.number;
+		bs->enemysuicide = qfalse;
+		bs->enemydeath_time = 0;
+		bs->enemyvisible_time = FloatTime();
+
+		//ADAM Specific
+
+		if (BotAI_GetClientState(entinfo.number, &ps))
+			bs->enemyCrouch = ps.pm_flags & PMF_DUCKED;
+		else
+			bs->enemyCrouch =0;
+
+		VectorCopy(dir,bs->enemyDir);
+		VectorNormalize(bs->enemyDir);
+		bs->squaredEnemyDis = squareDist;
+		return qtrue;
+	}
+	
+	VectorClear(bs->enemyDir);
+	bs->squaredEnemyDis = 0;
+	bs->enemyCrouch = 0;
+	return qfalse;
+
+}
+
+void AdamUpdateEnemy(bot_state_t *bs)
+{
+	int currentEnemy;
+	float squareDist;
+	aas_entityinfo_t entinfo;
+	playerState_t ps;	
+	vec3_t dir;
+
+	currentEnemy = bs->enemy;
+	
+	BotEntityInfo(currentEnemy,&entinfo);
+
+	if(!entinfo.valid) return;
+
+	VectorSubtract(entinfo.origin,bs->origin,dir);
+	squareDist = VectorLengthSquared(dir);
+
+
+	bs->enemysuicide = qfalse;
+	bs->enemydeath_time = 0;
+	bs->enemyvisible_time = FloatTime();
+
+	if (BotAI_GetClientState(entinfo.number, &ps))
+		bs->enemyCrouch = ps.pm_flags & PMF_DUCKED;
+	else
+		bs->enemyCrouch =0;
+
+	//ADAM Specific
+	VectorCopy(dir,bs->enemyDir);
+	VectorNormalize(bs->enemyDir);
+	bs->squaredEnemyDis = squareDist;
 }

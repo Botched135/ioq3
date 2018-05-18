@@ -1809,9 +1809,9 @@ int AINode_Seek_LTG(bot_state_t *bs)
 	vec3_t target, dir;
 	bot_moveresult_t moveresult;
 	int range;
-	//char buf[128];
-	//bot_goal_t tmpgoal;
-
+	char buf[128];
+	bot_goal_t tmpgoal;
+	
 	if (BotIsObserver(bs)) {
 		AIEnter_Observer(bs, "seek ltg: observer");
 		return qfalse;
@@ -1903,8 +1903,8 @@ int AINode_Seek_LTG(bot_state_t *bs)
 		if (BotNearbyGoal(bs, bs->tfl, &goal, range)) {
 			trap_BotResetLastAvoidReach(bs->ms);
 			//get the goal at the top of the stack
-			//trap_BotGetTopGoal(bs->gs, &tmpgoal);
-			//trap_BotGoalName(tmpgoal.number, buf, 144);
+			trap_BotGetTopGoal(bs->gs, &tmpgoal);
+			trap_BotGoalName(tmpgoal.number, buf, 144);
 			//BotAI_Print(PRT_MESSAGE, "new nearby goal %s\n", buf);
 			//time the bot gets to pick up the nearby goal item
 			bs->nbg_time = FloatTime() + 4 + range * 0.01;
@@ -2628,3 +2628,148 @@ int AINode_Battle_NBG(bot_state_t *bs) {
 	return qtrue;
 }
 
+void AdamEnter_Seek(bot_state_t* bs)
+{
+	bs->adamNode = Adam_Seek;	
+}
+int Adam_Seek(bot_state_t* bs, float* neatData)
+{
+	if (BotIsDead(bs)) 
+	{
+		AdamEnter_Respawn(bs);
+		return qfalse;
+	}
+	
+	bs->tfl = TFL_DEFAULT;
+	if (bot_grapple.integer) bs->tfl |= TFL_GRAPPLEHOOK;
+	//if in lava or slime the bot should be able to get out
+	if (BotInLavaOrSlime(bs)) bs->tfl |= TFL_LAVA|TFL_SLIME;
+	//
+	if (BotCanAndWantsToRocketJump(bs)) 
+		bs->tfl |= TFL_ROCKETJUMP;
+
+	//map specific code
+	AdamBotMapScripts(bs);
+	//no enemy
+	bs->enemy = -1;
+
+	//if there is an enemy
+	if (AdamFindEnemy(bs, -1)) 
+	{
+		AdamEnter_Fight(bs);
+		return qfalse;
+	}
+	trap_EA_Jump(bs->client);
+	//
+	/*
+	START MOVEMENT SETUP HERE.
+	*/
+	return qtrue;
+
+}
+void AdamEnter_Fight(bot_state_t* bs)
+{
+	bs->adamNode = Adam_Fight;
+
+}
+int Adam_Fight(bot_state_t* bs, float* neatData)
+{
+	aas_entityinfo_t entinfo;
+	vec3_t target;
+	int areanum;
+	if (BotIsDead(bs)) 
+	{
+		AdamEnter_Respawn(bs);
+		return qfalse;
+	}
+	if (bs->enemy < 0) {
+		AdamEnter_Seek(bs);
+		return qfalse;
+	}
+
+	BotEntityInfo(bs->enemy, &entinfo);
+	if (EntityIsDead(&entinfo)) {
+		AdamEnter_Seek(bs);
+		return qfalse;
+	}
+
+	//update last time player was seen
+	if (BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, 360, bs->enemy)) 
+	{
+		bs->enemyvisible_time = FloatTime();
+		VectorCopy(entinfo.origin, target);
+
+		//update the reachability area and origin if possible
+		areanum = BotPointAreaNum(target);
+		if (areanum && trap_AAS_AreaReachability(areanum)) 
+		{
+			VectorCopy(target, bs->lastenemyorigin);
+			bs->lastenemyareanum = areanum;
+		}
+	}
+	//If the bot has not been seen in X seconds, return to seek
+	if(bs->enemyvisible_time < FloatTime()-4)
+	{
+		AdamEnter_Seek(bs);
+		return qfalse;
+	}
+	//else if it cannot find another enemy, go back to seek
+	else if(bs->enemyvisible_time < FloatTime())
+	{
+		if(!AdamFindEnemy(bs,-1))
+		{
+			AdamEnter_Seek(bs);
+			return qfalse;
+		}
+		
+	}
+	// Update the enemy
+	BotUpdateBattleInventory(bs,bs->enemy);
+	AdamUpdateEnemy(bs);
+
+	/*
+
+	*/
+
+	return qtrue;
+}
+void AdamEnter_Respawn(bot_state_t* bs)
+{
+	//reset some states
+	trap_BotResetMoveState(bs->ms);
+	trap_BotResetGoalState(bs->gs);
+	trap_BotResetAvoidGoals(bs->gs);
+	trap_BotResetAvoidReach(bs->ms);
+	//if the bot wants to chat
+	bs->respawn_time = FloatTime();
+	bs->respawnchat_time = 0;
+
+	//set respawn state
+	bs->respawn_wait = qfalse;
+	bs->adamNode = Adam_Respawn;
+}
+int Adam_Respawn(bot_state_t* bs,float* neatData)
+{
+	// if waiting for the actual respawn
+	if (bs->respawn_wait) 
+	{
+		if (!BotIsDead(bs))
+			AdamEnter_Seek(bs);
+		else
+			trap_EA_Respawn(bs->client);
+	}
+	else if (bs->respawn_time < FloatTime()) 
+	{
+		// wait until respawned
+		bs->respawn_wait = qtrue;
+		// elementary action respawn
+		trap_EA_Respawn(bs->client);
+		//
+		if (bs->respawnchat_time) {
+			trap_BotEnterChat(bs->cs, 0, bs->chatto);
+			bs->enemy = -1;
+		}
+	}
+	return qtrue;
+
+}

@@ -59,3 +59,16 @@ int AINode_Battle_NBG(bot_state_t *bs);
 void BotResetNodeSwitches(void);
 void BotDumpNodeSwitches(bot_state_t *bs);
 
+
+/*
+==========================
+ADAM NODES
+==========================
+*/
+
+void AdamEnter_Seek(bot_state_t* bs);
+int Adam_Seek(bot_state_t* bs, float* neatData);
+void AdamEnter_Fight(bot_state_t* bs);
+int Adam_Fight(bot_state_t* bs, float* neatData);
+void AdamEnter_Respawn(bot_state_t* bs);
+int Adam_Respawn(bot_state_t*, float* neatData);

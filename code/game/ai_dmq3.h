@@ -179,6 +179,9 @@ void BotMapScripts(bot_state_t *bs);
 
 // FOR ADAM
 void AdamBotIntermission(bot_state_t *bs);
+void AdamBotMapScripts(bot_state_t *bs);
+int  AdamFindEnemy(bot_state_t *bs, int currentEnemy);
+void AdamUpdateEnemy(bot_state_t *bs);
 
 //ctf flags
 #define CTF_FLAG_NONE		0
