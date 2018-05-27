@@ -814,3 +814,8 @@ void trap_Adam_Com_Array_To_Action(float outputArray[MAX_CLIENTS][10], char* dat
 	syscall(ADAM_COM_ARRAY_TO_ACTION,outputArray,data);
 }
 
+void trap_Adam_Com_Get_PipeName(char* input)
+{
+	syscall(ADAM_COM_GET_PIPENAME,input);
+}
+

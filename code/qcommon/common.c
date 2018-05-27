@@ -131,6 +131,9 @@ static char	*rd_buffer;
 static int	rd_buffersize;
 static void	(*rd_flush)( char *buffer );
 
+// ADAM variable
+static char *adam_pipename;
+
 void Com_BeginRedirect (char *buffer, int buffersize, void (*flush)( char *) )
 {
 	if (!buffer || !buffersize || !flush)
@@ -425,7 +428,6 @@ void Com_ParseCommandLine( char *commandLine ) {
     int inq = 0;
     com_consoleLines[0] = commandLine;
     com_numConsoleLines = 1;
-
     while ( *commandLine ) {
         if (*commandLine == '"') {
             inq = !inq;
@@ -2677,10 +2679,10 @@ void Com_Init( char *commandLine ) {
 	// prepare enough of the subsystems to handle
 	// cvar and command buffer management
 	Com_ParseCommandLine( commandLine );
-
 //	Swap_Init ();
 	Cbuf_Init ();
-
+	Adam_Com_SetupPipe();
+	Com_Printf("PipeName:%s",adam_pipename);
 	Com_DetectSSE();
 
 	// override anything from the config files with command line args
@@ -3889,4 +3891,29 @@ void trap_Adam_Com_Array_To_Action(float outputArray[MAX_CLIENTS][10], char* dat
 		outputArray[clientNum][counter] = valueHolder;
 		counter++;
 	}
+}
+
+// ADAM FUNCTIONS
+
+void Adam_Com_SetupPipe(void)
+{
+	int i;
+	
+	//adam_pipename[0] = 0;
+	for(i=0;i < com_numConsoleLines;i++)
+	{
+		
+		if(Q_stricmpn(com_consoleLines[i],"pipe=",5)!=0)
+			continue;
+		
+		adam_pipename = malloc(strlen(com_consoleLines[i]+5));
+		Q_strncpyz(adam_pipename,com_consoleLines[i]+5,strlen(com_consoleLines[i]+5));
+		break;
+	}
+
+}
+
+void trap_Adam_Com_Get_PipeName(char* input)
+{
+	strncpy(input,adam_pipename,strlen(adam_pipename));
 }

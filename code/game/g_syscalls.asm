@@ -228,3 +228,4 @@ equ trap_Adam_Com_Close_Pipe            -602
 equ trap_Adam_Com_Read                  -603
 equ	trap_Adam_Com_Write                 -604
 equ trap_Adam_Com_Array_To_Action       -605
+equ trap_Adam_Com_Get_PipeName          -606

@@ -1422,12 +1422,13 @@ ADAM AGENT
 
 ===================================================================
 */
-
 int 	trap_Adam_Com_Open_Pipe			(char* fileName,int read);
 int 	trap_Adam_Com_Close_Pipe		(int fd);
 void 	trap_Adam_Com_Read				(int file, char* outputArray,int adaptiveAgents);
 void 	trap_Adam_Com_Write				(int file, float neatArray[MAX_CLIENTS][19], int adaptiveAgents);
 void	trap_Adam_Com_Array_To_Action	(float outputArray[MAX_CLIENTS][10], char* data);
+void	trap_Adam_Com_Get_PipeName		(char* input);
+void 	Adam_Com_SetupPipe				(void);
 
 
 

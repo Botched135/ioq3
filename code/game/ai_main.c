@@ -55,7 +55,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "inv.h"
 #include "syn.h"
 
-#define PIPENAME 	"/home/rbons/pipes/pipe"
+char pipeName[45];
 
 //bot states
 bot_state_t	*botstates[MAX_CLIENTS];
@@ -1418,7 +1418,7 @@ int BotAIStartFrame(int time) {
 	float neatInput[MAX_CLIENTS][22];
 	// FINAL NUMBER IS DEFINED BY HOW MANY ACTIONS IT CAN TAKE
 	float neatActions[MAX_CLIENTS][10];
-    
+
 	G_CheckBotSpawn();
 
 	trap_Cvar_Update(&bot_rocketjump);
@@ -1432,6 +1432,11 @@ int BotAIStartFrame(int time) {
 	trap_Cvar_Update(&bot_pause);
 	trap_Cvar_Update(&bot_report);
 
+	if(strlen(pipeName) == 0)
+	{
+		trap_Adam_Com_Get_PipeName(pipeName);
+		G_Printf("Pipename in AI_MAIN: %s\n",pipeName);
+	}
 	if (bot_report.integer) {
 //		BotTeamplayReport();
 //		trap_Cvar_Set("bot_report", "0");
@@ -1585,14 +1590,15 @@ int BotAIStartFrame(int time) {
 	floattime = trap_AAS_Time();
 	//Collect data here.
 	// WRITE DATA
-	/*adaptiveAgents = BotStateToNEAT(neatInput,botstates);
-	pipeOut = trap_Adam_Com_Open_Pipe(PIPENAME,0);
+	/*
+	adaptiveAgents = BotStateToNEAT(neatInput,botstates);
+	pipeOut = trap_Adam_Com_Open_Pipe(pipeName,0);
 	trap_Adam_Com_Write(pipeOut,neatInput,adaptiveAgents);
 	trap_Adam_Com_Close_Pipe(pipeOut);
 
 	
 	// READ DATA
-	pipeIn = trap_Adam_Com_Open_Pipe(PIPENAME,1);
+	pipeIn = trap_Adam_Com_Open_Pipe(pipeName,1);
 	trap_Adam_Com_Read(pipeIn,neatOutput,adaptiveAgents);
 	trap_Adam_Com_Close_Pipe(pipeIn);
 	

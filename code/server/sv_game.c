@@ -857,6 +857,9 @@ intptr_t SV_GameSystemCalls( intptr_t *args ) {
 	case ADAM_COM_ARRAY_TO_ACTION:
 		trap_Adam_Com_Array_To_Action(VMA(1),VMA(2));
 		return 0;
+	case ADAM_COM_GET_PIPENAME:
+		trap_Adam_Com_Get_PipeName(VMA(1));
+		return 0;
 	default:
 		Com_Error( ERR_DROP, "Bad game system trap: %ld", (long int) args[0] );
 	}
