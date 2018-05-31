@@ -866,6 +866,11 @@ intptr_t SV_GameSystemCalls( intptr_t *args ) {
 
 	case ADAM_COM_WRITE_FITNESS:
 		trap_Adam_Com_Write_Fitness(args[1],VMA(2),args[3]);
+		return 0;
+	
+	case ADAM_COM_WRITE_READY:
+		trap_Adam_Com_Write_Ready(args[1]);
+		return 0;
 	
 	case ADAM_COM_ARRAY_TO_ACTION:
 		trap_Adam_Com_Array_To_Action(VMA(1),VMA(2));

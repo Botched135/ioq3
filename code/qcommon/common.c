@@ -3874,6 +3874,17 @@ void trap_Adam_Com_Write_Fitness(int file, float fitnessArray[MAX_CLIENTS][4], i
 	//TODO
 }
 
+void trap_Adam_Com_Write_Ready(int file)
+{
+	int returnVal;
+	char* readyVal;
+	readyVal = "ready";
+	returnVal = write(file, readyVal,strlen(readyVal));
+	if(returnVal < 0)
+		printf("WRITE ERROR! \n");
+
+}
+
 void trap_Adam_Com_Array_To_Action(float outputArray[MAX_CLIENTS][10], char* data)
 {
 	char* tokenHolder;

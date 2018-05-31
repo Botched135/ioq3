@@ -826,6 +826,11 @@ void trap_Adam_Com_Write_Fitness(int file, float fitnessArray[MAX_CLIENTS][4], i
 	syscall(ADAM_COM_WRITE_NEAT,file,fitnessArray,adaptiveAgents);
 }
 
+void trap_Adam_Com_Write_Ready(int file)
+{
+	syscall(ADAM_COM_WRITE_READY,file);
+}
+
 void trap_Adam_Com_Array_To_Action(float outputArray[MAX_CLIENTS][10], char* data)
 {
 	syscall(ADAM_COM_ARRAY_TO_ACTION,outputArray,data);

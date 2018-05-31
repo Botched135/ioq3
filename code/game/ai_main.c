@@ -1430,13 +1430,21 @@ int BotAIStartFrame(int time) {
 		trap_Adam_Com_Get_PipeName(pipeName);
 		G_Printf("Pipename in AI_MAIN: %s\n",pipeName);
 	}
+
+	// Informing trainer that this server is ready
+	pipeOut = trap_Adam_Com_Open_Pipe(pipeName,0);
+	trap_Adam_Com_Write_Ready(pipeOut);
+	trap_Adam_Com_Close_Pipe(pipeOut);
 	// Check if it needs to pause for a new generation
 	pipeIn = trap_Adam_Com_Open_Pipe(pipeName,1);
 	trap_Adam_Com_Read_Pause(pipeIn,pausing);
 	trap_Adam_Com_Close_Pipe(pipeIn);
 
 	if(pausing[0] == 'p')
+	{
 		trap_Cvar_Set("bot_pause","1");
+		G_Printf("Should be now!\n");
+	}
 	else
 		trap_Cvar_Set("bot_pause","0");
 
@@ -1451,6 +1459,7 @@ int BotAIStartFrame(int time) {
 	trap_Cvar_Update(&bot_pause);
 	trap_Cvar_Update(&bot_report);
 
+	//G_Printf("Botpause is: %i \n",bot_pause.integer);
 	if (bot_report.integer) {
 //		BotTeamplayReport();
 //		trap_Cvar_Set("bot_report", "0");
@@ -1483,7 +1492,7 @@ int BotAIStartFrame(int time) {
 				trap_EA_Respawn(i);
 				botstates[i]->resetFlag = 0;
 			}
-			
+			G_Printf("I am into pausing");
 			trap_BotUserCommand(botstates[i]->client, &botstates[i]->lastucmd);
 		}
 		//Send Fitness data
