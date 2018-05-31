@@ -82,6 +82,8 @@ vmCvar_t bot_interbreedbots;
 vmCvar_t bot_interbreedcycle;
 vmCvar_t bot_interbreedwrite;
 
+//ADAM Variables
+int fitnessSent;
 
 void ExitLevel( void );
 
@@ -1415,11 +1417,28 @@ int BotAIStartFrame(int time) {
 	static int botlib_residual;
 	static int lastbotthink_time;
 	// FOR ADAM
+	char  pausing[2];
 	float neatInput[MAX_CLIENTS][22];
 	// FINAL NUMBER IS DEFINED BY HOW MANY ACTIONS IT CAN TAKE
 	float neatActions[MAX_CLIENTS][10];
+	float fitnessOutput[MAX_CLIENTS][4];
 
 	G_CheckBotSpawn();
+
+	if(strlen(pipeName) == 0)
+	{
+		trap_Adam_Com_Get_PipeName(pipeName);
+		G_Printf("Pipename in AI_MAIN: %s\n",pipeName);
+	}
+	// Check if it needs to pause for a new generation
+	pipeIn = trap_Adam_Com_Open_Pipe(pipeName,1);
+	trap_Adam_Com_Read_Pause(pipeIn,pausing);
+	trap_Adam_Com_Close_Pipe(pipeIn);
+
+	if(pausing[0] == 'p')
+		trap_Cvar_Set("bot_pause","1");
+	else
+		trap_Cvar_Set("bot_pause","0");
 
 	trap_Cvar_Update(&bot_rocketjump);
 	trap_Cvar_Update(&bot_grapple);
@@ -1432,11 +1451,6 @@ int BotAIStartFrame(int time) {
 	trap_Cvar_Update(&bot_pause);
 	trap_Cvar_Update(&bot_report);
 
-	if(strlen(pipeName) == 0)
-	{
-		trap_Adam_Com_Get_PipeName(pipeName);
-		G_Printf("Pipename in AI_MAIN: %s\n",pipeName);
-	}
 	if (bot_report.integer) {
 //		BotTeamplayReport();
 //		trap_Cvar_Set("bot_report", "0");
@@ -1452,6 +1466,8 @@ int BotAIStartFrame(int time) {
 			if( g_entities[i].client->pers.connected != CON_CONNECTED ) {
 				continue;
 			}
+			// Gather fitness values
+
 			botstates[i]->lastucmd.forwardmove = 0;
 			botstates[i]->lastucmd.rightmove = 0;
 			botstates[i]->lastucmd.upmove = 0;
@@ -1470,6 +1486,15 @@ int BotAIStartFrame(int time) {
 			
 			trap_BotUserCommand(botstates[i]->client, &botstates[i]->lastucmd);
 		}
+		//Send Fitness data
+		/*if(fitnessSent == 2)
+		{
+			pipeOut = trap_Adam_Com_Open_Pipe(pipeName,0);
+			trap_Adam_Com_Write_Fitness(pipeOut,fitnessOutput,adaptiveAgents);
+			trap_Adam_Com_Close_Pipe(pipeOut);
+			
+			fitnessSent = 0;
+		}*/
 		return qtrue;
 	}
 
@@ -1631,7 +1656,7 @@ int BotAIStartFrame(int time) {
 			}
 		}
 	}
-
+	fitnessSent = 2;
 	// execute bot user commands every frame
 	for( i = 0; i < MAX_CLIENTS; i++ ) {
 		if( !botstates[i] || !botstates[i]->inuse ) {

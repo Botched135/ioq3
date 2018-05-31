@@ -3807,7 +3807,13 @@ int trap_Adam_Com_Close_Pipe(int fd)
 {
 	return close(fd);
 }
-void trap_Adam_Com_Read(int file, char* outputArray,int adaptiveAgents)
+
+void trap_Adam_Com_Get_PipeName(char* input)
+{
+	strncpy(input,adam_pipename,strlen(adam_pipename));
+}
+
+void trap_Adam_Com_Read_Neat(int file, char* outputArray,int adaptiveAgents)
 {
 	int returnVal;
 	int bufferSize = adaptiveAgents*28;
@@ -3815,7 +3821,16 @@ void trap_Adam_Com_Read(int file, char* outputArray,int adaptiveAgents)
 	if(returnVal < 0)
 		printf("READ ERROR! \n");
 }
-void trap_Adam_Com_Write(int file, float neatArray[MAX_CLIENTS][19],int adaptiveAgents)
+
+void trap_Adam_Com_Read_Pause(int file, char* input)
+{
+	int returnVal;
+	returnVal = read(file,input,2);
+	if(returnVal < 0)
+		printf("READ ERROR! \n");
+}
+
+void trap_Adam_Com_Write_Neat(int file, float neatArray[MAX_CLIENTS][19],int adaptiveAgents)
 {
 	int i, counter, returnVal;
 	char *writeArray;
@@ -3843,7 +3858,6 @@ void trap_Adam_Com_Write(int file, float neatArray[MAX_CLIENTS][19],int adaptive
 		}
 	}
 	
-	
 	if(counter >0)
 	{
 		
@@ -3853,6 +3867,11 @@ void trap_Adam_Com_Write(int file, float neatArray[MAX_CLIENTS][19],int adaptive
 	}
     
 	free(writeArray);
+}
+
+void trap_Adam_Com_Write_Fitness(int file, float fitnessArray[MAX_CLIENTS][4], int adaptiveAgents)
+{
+	//TODO
 }
 
 void trap_Adam_Com_Array_To_Action(float outputArray[MAX_CLIENTS][10], char* data)
@@ -3911,9 +3930,4 @@ void Adam_Com_SetupPipe(void)
 		break;
 	}
 
-}
-
-void trap_Adam_Com_Get_PipeName(char* input)
-{
-	strncpy(input,adam_pipename,strlen(adam_pipename));
 }

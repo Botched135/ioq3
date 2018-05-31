@@ -800,22 +800,34 @@ int trap_Adam_Com_Close_Pipe(int fd)
 {
 	return syscall(ADAM_COM_CLOSE_PIPE,fd);
 }
-void  trap_Adam_Com_Read(int file, char* outputArray, int adaptiveAgents)
+
+void trap_Adam_Com_Get_PipeName(char* input)
 {
-	syscall(ADAM_COM_READ_PIPE,file,outputArray,adaptiveAgents);
+	syscall(ADAM_COM_GET_PIPENAME,input);
 }
-void trap_Adam_Com_Write(int file, float neatArray[MAX_CLIENTS][19], int adaptiveAgents)
+
+void trap_Adam_Com_Read_Neat(int file, char* outputArray, int adaptiveAgents)
 {
-	syscall(ADAM_COM_WRITE_PIPE,file,neatArray,adaptiveAgents);
+	syscall(ADAM_COM_READ_NEAT,file,outputArray,adaptiveAgents);
+}
+
+void trap_Adam_Com_Read_Pause(int file, char *input)
+{
+	syscall(ADAM_COM_READ_PAUSE,file,input);
+}
+
+void trap_Adam_Com_Write_Neat(int file, float neatArray[MAX_CLIENTS][19], int adaptiveAgents)
+{
+	syscall(ADAM_COM_WRITE_NEAT,file,neatArray,adaptiveAgents);
+}
+
+void trap_Adam_Com_Write_Fitness(int file, float fitnessArray[MAX_CLIENTS][4], int adaptiveAgents)
+{
+	syscall(ADAM_COM_WRITE_NEAT,file,fitnessArray,adaptiveAgents);
 }
 
 void trap_Adam_Com_Array_To_Action(float outputArray[MAX_CLIENTS][10], char* data)
 {
 	syscall(ADAM_COM_ARRAY_TO_ACTION,outputArray,data);
-}
-
-void trap_Adam_Com_Get_PipeName(char* input)
-{
-	syscall(ADAM_COM_GET_PIPENAME,input);
 }
 
