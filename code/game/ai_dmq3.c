@@ -5255,8 +5255,7 @@ void BotDeathmatchAI(bot_state_t *bs, float thinktime) {
 		//
 		if(strcmp(bs->settings.characterfile,"bots/adam_c.c")==0)
 		{
-			bs->adaptive = 2;
-			bs->resetFlag = 2;
+			bs->adamFlag |= (ADAM_ADAPTIVE | ADAM_RESET);
 			bs->flags &= ~BFL_IDEALVIEWSET;
 			G_Printf("ADAPTIVE AGENT INITIALIZED\n");
 			return;
@@ -5657,10 +5656,32 @@ int AdamFindEnemy(bot_state_t *bs, int currentEnemy)
 		//ADAM Specific
 
 		if (BotAI_GetClientState(entinfo.number, &ps))
-			bs->enemyCrouch = ps.pm_flags & PMF_DUCKED;
-		else
-			bs->enemyCrouch =0;
+		{
+			// Enemy is crouching
+			if(ps.pm_flags & PMF_DUCKED)
+				bs->adamFlag |= ADAM_ENEMYCROUCH;
+			else
+				bs->adamFlag &= ~ADAM_ENEMYCROUCH;
 
+			// Enemy is in air
+			if(ps.groundEntityNum == ENTITYNUM_NONE)
+				bs->adamFlag |= ADAM_ENEMYAIR;
+			else
+				bs->adamFlag &= ~ADAM_ENEMYAIR;
+			
+			// Enemy is shooting
+			if(EntityIsShooting(&entinfo))
+				bs->adamFlag |= ADAM_ENEMYFIRE;
+			else
+				bs->adamFlag &= ~ADAM_ENEMYFIRE;
+
+			bs->enemyWeapon = ps.weapon;
+		}
+		else
+		{
+			bs->adamFlag &= ~(ADAM_ENEMYCROUCH | ADAM_ENEMYAIR | ADAM_ENEMYFIRE);
+			bs->enemyWeapon = 0;
+		}
 		VectorCopy(dir,bs->enemyDir);
 		VectorNormalize(bs->enemyDir);
 		bs->squaredEnemyDis = squareDist;
@@ -5669,7 +5690,8 @@ int AdamFindEnemy(bot_state_t *bs, int currentEnemy)
 	
 	VectorClear(bs->enemyDir);
 	bs->squaredEnemyDis = 0;
-	bs->enemyCrouch = 0;
+	bs->adamFlag &= ~(ADAM_ENEMYCROUCH | ADAM_ENEMYAIR| ADAM_ENEMYFIRE);
+	bs->enemyWeapon = 0;
 	return qfalse;
 
 }
@@ -5696,12 +5718,36 @@ void AdamUpdateEnemy(bot_state_t *bs)
 	bs->enemydeath_time = 0;
 	bs->enemyvisible_time = FloatTime();
 
-	if (BotAI_GetClientState(entinfo.number, &ps))
-		bs->enemyCrouch = ps.pm_flags & PMF_DUCKED;
-	else
-		bs->enemyCrouch =0;
-
 	//ADAM Specific
+	if (BotAI_GetClientState(entinfo.number, &ps))
+	{
+		// Enemy crouch
+		if(ps.pm_flags & PMF_DUCKED)
+			bs->adamFlag |= ADAM_ENEMYCROUCH;
+		else
+			bs->adamFlag &= ~ADAM_ENEMYCROUCH;
+
+		// Enemy in air
+		if(ps.groundEntityNum == ENTITYNUM_NONE)
+			bs->adamFlag |= ADAM_ENEMYAIR;
+		else
+			bs->adamFlag &= ~ADAM_ENEMYAIR;
+		
+		// Enemy is shooting
+		if(EntityIsShooting(&entinfo))
+			bs->adamFlag |= ADAM_ENEMYFIRE;
+		else
+			bs->adamFlag &= ~ADAM_ENEMYFIRE;
+
+		bs->enemyWeapon = ps.weapon;
+		
+	}
+	else
+	{
+		bs->adamFlag &= ~(ADAM_ENEMYCROUCH | ADAM_ENEMYAIR | ADAM_ENEMYFIRE);
+		bs->enemyWeapon = 0;
+	}
+
 	VectorCopy(dir,bs->enemyDir);
 	VectorNormalize(bs->enemyDir);
 	bs->squaredEnemyDis = squareDist;

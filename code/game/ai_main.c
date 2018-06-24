@@ -1247,7 +1247,7 @@ int BotAISetupClient(int client, struct bot_settings_s *settings, qboolean resta
 	bs->entergame_time = FloatTime();
 	bs->ms = trap_BotAllocMoveState();
 	bs->walker = trap_Characteristic_BFloat(bs->character, CHARACTERISTIC_WALKER, 0, 1);
-	bs->adaptive = 0;
+	bs->adamFlag &= ~ADAM_ADAPTIVE;
 	numbots++;
 
 	if (trap_Cvar_VariableIntegerValue("bot_testichat")) {
@@ -1343,8 +1343,8 @@ void BotResetState(bot_state_t *bs) {
 	chatstate = bs->cs;
 	weaponstate = bs->ws;
 	entergame_time = bs->entergame_time;
-	if(bs->adaptive >1)
-		adaptive = bs->adaptive;
+	if(bs->adamFlag & ADAM_ADAPTIVE)
+		adaptive = 1;
 	else
 	    adaptive = 0;
 	//free checkpoints and patrol points
@@ -1364,7 +1364,7 @@ void BotResetState(bot_state_t *bs) {
 	bs->entitynum = entitynum;
 	bs->character = character;
 	bs->entergame_time = entergame_time;
-	bs->adaptive = adaptive;
+	bs->adamFlag = adaptive;
 	//reset several states
 	if (bs->ms) trap_BotResetMoveState(bs->ms);
 	if (bs->gs) trap_BotResetGoalState(bs->gs);
@@ -1418,27 +1418,33 @@ int BotAIStartFrame(int time) {
 	static int lastbotthink_time;
 	// FOR ADAM
 	char  pausing[2];
+	char* neatOutput;
 	float neatInput[MAX_CLIENTS][22];
 	// FINAL NUMBER IS DEFINED BY HOW MANY ACTIONS IT CAN TAKE
 	float neatActions[MAX_CLIENTS][10];
 	float fitnessOutput[MAX_CLIENTS][4];
 
 	G_CheckBotSpawn();
+	
+	adaptiveAgents = GetAdaptiveAgents(botstates);
 
-	if(strlen(pipeName) == 0)
+	if(adaptiveAgents)
 	{
-		trap_Adam_Com_Get_PipeName(pipeName);
-		G_Printf("Pipename in AI_MAIN: %s\n",pipeName);
-	}
+		if(strlen(pipeName) == 0)
+		{
+			trap_Adam_Com_Get_PipeName(pipeName);
+			G_Printf("Pipename in AI_MAIN: %s\n",pipeName);
+		}
 
-	// Informing trainer that this server is ready
-	pipeOut = trap_Adam_Com_Open_Pipe(pipeName,0);
-	trap_Adam_Com_Write_Ready(pipeOut);
-	trap_Adam_Com_Close_Pipe(pipeOut);
-	// Check if it needs to pause for a new generation
-	pipeIn = trap_Adam_Com_Open_Pipe(pipeName,1);
-	trap_Adam_Com_Read_Pause(pipeIn,pausing);
-	trap_Adam_Com_Close_Pipe(pipeIn);
+		// Informing trainer that this server is ready
+		pipeOut = trap_Adam_Com_Open_Pipe(pipeName,0);
+		trap_Adam_Com_Write_Ready(pipeOut);
+		trap_Adam_Com_Close_Pipe(pipeOut);
+		// Check if it needs to pause for a new generation
+		pipeIn = trap_Adam_Com_Open_Pipe(pipeName,1);
+		trap_Adam_Com_Read_Pause(pipeIn,pausing);
+		trap_Adam_Com_Close_Pipe(pipeIn);
+	}
 
 	if(pausing[0] == 'p')
 	{
@@ -1483,27 +1489,30 @@ int BotAIStartFrame(int time) {
 			botstates[i]->lastucmd.buttons = 0;
 			botstates[i]->lastucmd.serverTime = time;
 			//RESET THE BOT
-			if(botstates[i]->resetFlag)
+			if(botstates[i]->adamFlag & ADAM_RESET)
 			{
 				botstates[i]->num_deaths = 0;
 				botstates[i]->num_kills = 0;
 				botstates[i]->lasthitcount = 0;
 				botstates[i]->cur_ps.persistant[PERS_HITS] = 0;
 				trap_EA_Respawn(i);
-				botstates[i]->resetFlag = 0;
+				botstates[i]->adamFlag = ADAM_ADAPTIVE;
 			}
 			G_Printf("I am into pausing");
 			trap_BotUserCommand(botstates[i]->client, &botstates[i]->lastucmd);
 		}
-		//Send Fitness data
-		/*if(fitnessSent == 2)
+		if(adaptiveAgents)
 		{
-			pipeOut = trap_Adam_Com_Open_Pipe(pipeName,0);
-			trap_Adam_Com_Write_Fitness(pipeOut,fitnessOutput,adaptiveAgents);
-			trap_Adam_Com_Close_Pipe(pipeOut);
+			//Send Fitness data
+			/*if(fitnessSent == 2)
+			{
+				pipeOut = trap_Adam_Com_Open_Pipe(pipeName,0);
+				trap_Adam_Com_Write_Fitness(pipeOut,fitnessOutput,adaptiveAgents);
+				trap_Adam_Com_Close_Pipe(pipeOut);
 			
-			fitnessSent = 0;
-		}*/
+				fitnessSent = 0;
+			}*/
+		}
 		return qtrue;
 	}
 
@@ -1514,7 +1523,7 @@ int BotAIStartFrame(int time) {
 			if( g_entities[i].client->pers.connected != CON_CONNECTED )
 				continue;
 		
-		botstates[i]->resetFlag = 2;
+		botstates[i]->adamFlag |= ADAM_RESET;
 	}
 	
 
@@ -1623,26 +1632,28 @@ int BotAIStartFrame(int time) {
 
 	floattime = trap_AAS_Time();
 	//Collect data here.
-	// WRITE DATA
-	/*
-	adaptiveAgents = BotStateToNEAT(neatInput,botstates);
-	pipeOut = trap_Adam_Com_Open_Pipe(pipeName,0);
-	trap_Adam_Com_Write(pipeOut,neatInput,adaptiveAgents);
-	trap_Adam_Com_Close_Pipe(pipeOut);
+	if(adaptiveAgents)
+	{
+		// WRITE DATA
+	
+		BotStateToNEAT(neatInput,botstates);
+		pipeOut = trap_Adam_Com_Open_Pipe(pipeName,0);
+		trap_Adam_Com_Write_Neat(pipeOut,neatInput,adaptiveAgents);
+		trap_Adam_Com_Close_Pipe(pipeOut);
 
 	
-	// READ DATA
-	pipeIn = trap_Adam_Com_Open_Pipe(pipeName,1);
-	trap_Adam_Com_Read(pipeIn,neatOutput,adaptiveAgents);
-	trap_Adam_Com_Close_Pipe(pipeIn);
+		// READ DATA
+		pipeIn = trap_Adam_Com_Open_Pipe(pipeName,1);
+		trap_Adam_Com_Read_Neat(pipeIn,neatOutput,adaptiveAgents);
+		trap_Adam_Com_Close_Pipe(pipeIn);
 	
-	// TRANSLATE STRING DATA TO FLOAT ARRAY
-	if(strlen(neatOutput) >0)
-	{
-		trap_Adam_Com_Array_To_Action(neatActions,neatOutput);
-		//G_Printf("First:%.2f, Second: %.2f, Third: %.2f\n",neatActions[0][0],neatActions[1][0],neatActions[2][0]);
+		// TRANSLATE STRING DATA TO FLOAT ARRAY
+		if(strlen(neatOutput) >0)
+		{
+			trap_Adam_Com_Array_To_Action(neatActions,neatOutput);
+			//G_Printf("First:%.2f, Second: %.2f, Third: %.2f\n",neatActions[0][0],neatActions[1][0],neatActions[2][0]);
+		}
 	}
-	*/
 	// execute scheduled bot AI
 	for( i = 0; i < MAX_CLIENTS; i++ ) {
 		if( !botstates[i] || !botstates[i]->inuse ) {
@@ -1658,7 +1669,7 @@ int BotAIStartFrame(int time) {
 
 			if (g_entities[i].client->pers.connected == CON_CONNECTED) 
 			{
-				if(botstates[i]->adaptive)
+				if(botstates[i]->adamFlag & ADAM_ADAPTIVE)
 					BotAdamAgent(i,(float)thinktime/1000,neatActions[i]);
 				else
 					BotAI(i, (float) thinktime / 1000);
@@ -1905,15 +1916,14 @@ int BotAdamAgent(int clientNum,float thinktime, float *neatInput)
 	return qtrue;
 
 }
-
-// Returns numbers of adaptive agents
-int BotStateToNEAT(float neatArray[MAX_CLIENTS][22], bot_state_t **bs)
+// Converts states from Quake III into floating number from 0-1
+void BotStateToNEAT(float neatArray[MAX_CLIENTS][22], bot_state_t **bs)
 {
 	int i, amount;
 	amount = 0;
 	for(i = 0; i < MAX_CLIENTS;i++)
 	{
-		if(bs[i]->adaptive !=2)
+		if(bs[i]->adamFlag & ADAM_ADAPTIVE)
 			continue;
 
 		//Initialization
@@ -1921,85 +1931,105 @@ int BotStateToNEAT(float neatArray[MAX_CLIENTS][22], bot_state_t **bs)
 		neatArray[i][1] = bs[i]->inuse;
 
 		neatArray[i][2] = bs[i]->client;
-		neatArray[i][3] = bs[i]->weaponnum;
 
-		if(bs[i]->lastframe_health < 0)
-			neatArray[i][4] = 0;
-		else
-			neatArray[i][4] = bs[i]->lastframe_health;
-		// Own origin vector 
-		neatArray[i][5] = bs[i]->origin[0];
-		neatArray[i][6] = bs[i]->origin[1];
-		neatArray[i][7] = bs[i]->origin[2];
-		// Own Velocity
-		neatArray[i][8] = bs[i]->velocity[0];
-		neatArray[i][9] = bs[i]->velocity[1];
-		neatArray[i][10] = bs[i]->velocity[2];
-		// Self Crounch
-		neatArray[i][11] = bs[i]->cur_ps.pm_flags & PMF_DUCKED;
+		// Self Weapon
+		neatArray[i][3] = bs[i]->weaponnum/9;
 
-		// View angle
-		neatArray[i][12] = bs[i]->viewangles[0];
-		neatArray[i][13] = bs[i]->viewangles[1];
-		neatArray[i][14] = bs[i]->viewangles[2];
-		// Enemy Dir 
-		neatArray[i][15] = bs[i]->enemyDir[0];
-		neatArray[i][16] = bs[i]->enemyDir[1];
-		neatArray[i][17] = bs[i]->enemyDir[2];
-		// Enemy Velocity
-		neatArray[i][18] = bs[i]->enemyvelocity[0];
-		neatArray[i][19] = bs[i]->enemyvelocity[1];
-		neatArray[i][20] = bs[i]->enemyvelocity[2];
-
-		// Enemy Crouching
-		neatArray[i][21] = bs[i]->enemyCrouch;
+		// Self Ammo
+		neatArray[i][4] = GetAmmoWeapon(bs[i]->weaponnum,bs[i])/200;
 		
-		// CONSIDERATIONS FOR ADDITIONAL INPUT
-		/*
-		ISINAIR
-		ENEMY IN AIR
-		AMMO OF CURRENT WEAPON
-		CHANGE ORIGIN TO DIRECTION TO ENEMY 
-		*/
+		// Self HP
+		if(bs[i]->lastframe_health < 0)
+			neatArray[i][5] = 0;
+		else
+			neatArray[i][5] = bs[i]->lastframe_health/200;
+		
+		// Self Armor
+		neatArray[i][6] = bs[i]->inventory[INVENTORY_ARMOR]/200;
 
-		amount++;
+		// Self Crounch
+		neatArray[i][7] = bs[i]->cur_ps.pm_flags & PMF_DUCKED;
+
+		// Self in-air
+		neatArray[i][8] = bs[i]->cur_ps.groundEntityNum == ENTITYNUM_NONE;
+
+		// Self Velocity
+		neatArray[i][9]  = (bs[i]->velocity[0]+320)/320;
+		neatArray[i][10] = (bs[i]->velocity[1]+320)/320;
+		neatArray[i][11] = (bs[i]->velocity[2]+270)/270;
+
+		// Self View angle
+		neatArray[i][12] = bs[i]->viewangles[0]/360;
+		neatArray[i][13] = bs[i]->viewangles[1]/360;
+		neatArray[i][14] = bs[i]->viewangles[2]/360;
+
+
+		/*
+		========================================================
+		ENEMY 
+		========================================================
+		*/
+		// Enemy Crouching
+		neatArray[i][15] = bs[i]->adamFlag & ADAM_ENEMYCROUCH;
+		// Enemy in Air
+		neatArray[i][16] = bs[i]->adamFlag & ADAM_ENEMYAIR;
+		// Enemy Shooting
+		neatArray[i][17] = bs[i]->adamFlag & ADAM_ENEMYFIRE;
+		// Enemy Weapon
+		neatArray[i][18] = bs[i]->enemyWeapon/9;
+
+		// Enemy Distance
+
+		// Enemy Dir (already normalized)
+		neatArray[i][19] = bs[i]->enemyDir[0];
+		neatArray[i][20] = bs[i]->enemyDir[1];
+		neatArray[i][21] = bs[i]->enemyDir[2];
+		// Enemy Velocity
+		neatArray[i][22] = (bs[i]->enemyvelocity[0]+320)/320;
+		neatArray[i][23] = (bs[i]->enemyvelocity[1]+320)/320;
+		neatArray[i][24] = (bs[i]->enemyvelocity[2]+270)/270;
+
 	}
-	return amount;
 	
 }
 
-void NormalizeNeatInput(float neatArray[MAX_CLIENTS][22])
+int GetAmmoWeapon(int weaponNumber, bot_state_t* bs)
 {
-	int i;
-
-	for(i = 0; i < MAX_CLIENTS;i++)
+	int ammo;
+	switch(weaponNumber)
 	{
-		if(neatArray[i][0] !=2)
-			continue;
-			//Initialization
-
-		neatArray[i][3] = neatArray[i][3]/9;
-		neatArray[i][4] = neatArray[i][4]/200;
-		// Own origin vector 
-		neatArray[i][5] = neatArray[i][4];
-		neatArray[i][6] = neatArray[i][5];
-		neatArray[i][7] = neatArray[i][4];
-		// Own Velocity
-		neatArray[i][8] = (neatArray[i][7]+320)/320;
-		neatArray[i][9] = (neatArray[i][8]+320)/320;
-		neatArray[i][10] = (neatArray[i][9]+270)/270;
-		//self crouch (Already normalized)
-		// View angle
-		neatArray[i][12] = neatArray[i][10]/360;
-		neatArray[i][13] = neatArray[i][11]/360;
-		neatArray[i][14] = neatArray[i][12]/360;
-		// Enemy Direction (Already normalized) 
-		// Enemy Velocity
-		neatArray[i][18] = (neatArray[i][16]+320)/320;
-		neatArray[i][19] = (neatArray[i][17]+320)/320;
-		neatArray[i][20] = (neatArray[i][18]+270)/270;
-		// Enemy crouch (already normalized)
+		case 1:
+			ammo = 1;
+			break;
+		case 2:
+			ammo = bs->inventory[INVENTORY_BULLETS];
+			break;
+		case 3:
+			ammo = bs->inventory[INVENTORY_SHELLS];
+			break;
+		case 4:
+			ammo = bs->inventory[INVENTORY_GRENADES];
+			break;
+		case 5:
+			ammo = bs->inventory[INVENTORY_CELLS];
+			break;
+		case 6:
+			ammo = bs->inventory[INVENTORY_LIGHTNINGAMMO];
+			break;
+		case 7:
+			ammo = bs->inventory[INVENTORY_ROCKETS];
+			break;
+		case 8:
+			ammo = bs->inventory[INVENTORY_SLUGS];
+			break;
+		case 9:
+			ammo = bs->inventory[INVENTORY_BFGAMMO];
+			break;
+		default:
+			ammo = 0;
+			break;
 	}
+	return ammo;
 }
 int AdamAttack(bot_state_t* bs)
 {
@@ -2197,4 +2227,16 @@ void AdamBotChatSetup(int client, bot_state_t *bs)
 		else if (!Q_stricmp(buf, "clientLevelShot"))
 			{ /*ignore*/ }
 	}
+}
+
+int GetAdaptiveAgents(bot_state_t** bs)
+{
+	int amount,i;
+	amount = 0;
+	for(i = 0; i < MAX_CLIENTS;i++)
+	{
+		if(bs[i]->adamFlag & ADAM_ADAPTIVE)
+			amount++;
+	}
+	return amount;
 }

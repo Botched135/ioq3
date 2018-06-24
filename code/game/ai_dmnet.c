@@ -298,13 +298,13 @@ int BotGetItemLongTermGoal(bot_state_t *bs, int tfl, bot_goal_t *goal) {
 		//choose a new goal
 		//BotAI_Print(PRT_MESSAGE, "%6.1f client %d: BotChooseLTGItem\n", FloatTime(), bs->client);
 		if (trap_BotChooseLTGItem(bs->gs, bs->origin, bs->inventory, tfl)) {
-			/*
+			
 			char buf[128];
 			//get the goal at the top of the stack
 			trap_BotGetTopGoal(bs->gs, goal);
 			trap_BotGoalName(goal->number, buf, sizeof(buf));
 			BotAI_Print(PRT_MESSAGE, "%1.1f: new long term goal %s\n", FloatTime(), buf);
-            */
+            
 			bs->ltg_time = FloatTime() + 20;
 		}
 		else {//the bot gets sorta stuck with all the avoid timings, shouldn't happen though
@@ -1905,6 +1905,7 @@ int AINode_Seek_LTG(bot_state_t *bs)
 			//get the goal at the top of the stack
 			trap_BotGetTopGoal(bs->gs, &tmpgoal);
 			trap_BotGoalName(tmpgoal.number, buf, 144);
+			G_Printf("GoalName: %s \n",buf);
 			//BotAI_Print(PRT_MESSAGE, "new nearby goal %s\n", buf);
 			//time the bot gets to pick up the nearby goal item
 			bs->nbg_time = FloatTime() + 4 + range * 0.01;
@@ -2628,6 +2629,7 @@ int AINode_Battle_NBG(bot_state_t *bs) {
 	return qtrue;
 }
 
+
 void AdamEnter_Seek(bot_state_t* bs)
 {
 	bs->adamNode = Adam_Seek;	
@@ -2728,7 +2730,12 @@ int Adam_Fight(bot_state_t* bs, float* neatData)
 	AdamUpdateEnemy(bs);
 
 	/*
-
+	SHOOT
+	JUMP
+	CROUCH
+	SWITCH
+	MOVE
+	AIM
 	*/
 
 	return qtrue;

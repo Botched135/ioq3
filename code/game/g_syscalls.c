@@ -816,7 +816,7 @@ void trap_Adam_Com_Read_Pause(int file, char *input)
 	syscall(ADAM_COM_READ_PAUSE,file,input);
 }
 
-void trap_Adam_Com_Write_Neat(int file, float neatArray[MAX_CLIENTS][19], int adaptiveAgents)
+void trap_Adam_Com_Write_Neat(int file, float neatArray[MAX_CLIENTS][22], int adaptiveAgents)
 {
 	syscall(ADAM_COM_WRITE_NEAT,file,neatArray,adaptiveAgents);
 }

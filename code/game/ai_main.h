@@ -273,9 +273,8 @@ typedef struct bot_state_s
 	int patrolflags;								//patrol flags
 
 	//FOR ADAPTIVE AGENT
-	int adaptive;
-	int resetFlag;
-	int enemyCrouch;
+	int adamFlag;
+	int enemyWeapon;
 	int (*adamNode)(struct bot_state_s* bs,float* neatData);
 
 	int squaredEnemyDis;
@@ -304,8 +303,17 @@ int		BotTeamLeader(bot_state_t *bs);
 
 // ADAM functions
 int BotAdamAgent(int clientNum, float thinktime,float *neatInput); 
-int BotStateToNEAT(float neatArray[MAX_CLIENTS][22], bot_state_t **bs);
+void BotStateToNEAT(float neatArray[MAX_CLIENTS][22], bot_state_t **bs);
 void AdamBotChatSetup(int client, bot_state_t *bs);
+int GetAdaptiveAgents(bot_state_t** bs);
 int AdamAttack(bot_state_t* bs);
 int AdamSelectWeapon(bot_state_t* bs, float weaponIndex);
 int AdamJump(bot_state_t* bs, int airState);
+int GetAmmoWeapon(int weaponNumber, bot_state_t* bs);
+
+// ADAM flag
+#define ADAM_ADAPTIVE		0x00000001
+#define ADAM_RESET 			0x00000002
+#define ADAM_ENEMYCROUCH 	0x00000004
+#define ADAM_ENEMYAIR 		0x00000008
+#define ADAM_ENEMYFIRE		0x00000010
