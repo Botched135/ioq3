@@ -1427,10 +1427,10 @@ int 	trap_Adam_Com_Close_Pipe		(int fd);
 void	trap_Adam_Com_Get_PipeName		(char* input);
 void 	trap_Adam_Com_Read_Neat			(int file, char* outputArray,int adaptiveAgents);
 void	trap_Adam_Com_Read_Pause		(int file, char* input);
-void 	trap_Adam_Com_Write_Neat		(int file, float neatArray[MAX_CLIENTS][22], int adaptiveAgents);
+void 	trap_Adam_Com_Write_Neat		(int file, float neatArray[MAX_CLIENTS][26], int adaptiveAgents);
 void	trap_Adam_Com_Write_Fitness		(int file, float fitnessArray[MAX_CLIENTS][4], int adaptiveAgents);
 void	trap_Adam_Com_Write_Ready		(int file);
-void	trap_Adam_Com_Array_To_Action	(float outputArray[MAX_CLIENTS][10], char* data);
+void	trap_Adam_Com_Array_To_Action	(float outputArray[MAX_CLIENTS][11], char* data);
 
 void	trap_Adam_Com_Read_Pause		(int file, char* input);
 void 	Adam_Com_SetupPipe				(void);

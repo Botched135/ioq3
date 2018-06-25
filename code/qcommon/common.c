@@ -3816,7 +3816,7 @@ void trap_Adam_Com_Get_PipeName(char* input)
 void trap_Adam_Com_Read_Neat(int file, char* outputArray,int adaptiveAgents)
 {
 	int returnVal;
-	int bufferSize = adaptiveAgents*28;
+	int bufferSize = adaptiveAgents*59; // Actually 58, but one extra for safety
 	returnVal = read(file,outputArray,bufferSize);
 	if(returnVal < 0)
 		printf("READ ERROR! \n");
@@ -3830,14 +3830,14 @@ void trap_Adam_Com_Read_Pause(int file, char* input)
 		printf("READ ERROR! \n");
 }
 
-void trap_Adam_Com_Write_Neat(int file, float neatArray[MAX_CLIENTS][22],int adaptiveAgents)
+void trap_Adam_Com_Write_Neat(int file, float neatArray[MAX_CLIENTS][26],int adaptiveAgents)
 {
 	int i, counter, returnVal;
 	char *writeArray;
-	char temp[88];
+	char temp[123];
 
 	counter = 0;
-	writeArray = malloc(860);
+	writeArray = malloc(1230);
 	for(i = 0; i<MAX_CLIENTS;i++)
 	{
 		if(neatArray[i][0] == 2 && neatArray[i][1])
@@ -3847,10 +3847,12 @@ void trap_Adam_Com_Write_Neat(int file, float neatArray[MAX_CLIENTS][22],int ada
 		//data needs to be normalized
 		/*neatArray[i][2], 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0
 		*/
-		snprintf(temp,86,
-		"%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f:", neatArray[i][2],neatArray[i][3],neatArray[i][4],neatArray[i][5],neatArray[i][6],
-		neatArray[i][7],neatArray[i][8],neatArray[i][9],neatArray[i][10],neatArray[i][11],neatArray[i][12],
-		neatArray[i][13],neatArray[i][14],neatArray[i][15],neatArray[i][16],neatArray[i][17],neatArray[i][18]);
+		snprintf(temp,121,
+		"%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f:", 
+		neatArray[i][2],neatArray[i][3],neatArray[i][4],neatArray[i][5],neatArray[i][6],neatArray[i][7],neatArray[i][8],
+		neatArray[i][9],neatArray[i][10],neatArray[i][11],neatArray[i][12],neatArray[i][13],neatArray[i][14],neatArray[i][15],
+		neatArray[i][16],neatArray[i][17],neatArray[i][18],neatArray[i][19],neatArray[i][20],neatArray[i][21],neatArray[i][22],
+		neatArray[i][23],neatArray[i][24],neatArray[i][25]);
 		
 		
 		strcat(writeArray,temp);
@@ -3885,7 +3887,7 @@ void trap_Adam_Com_Write_Ready(int file)
 
 }
 
-void trap_Adam_Com_Array_To_Action(float outputArray[MAX_CLIENTS][10], char* data)
+void trap_Adam_Com_Array_To_Action(float outputArray[MAX_CLIENTS][11], char* data)
 {
 	char* tokenHolder;
 	int clientNum, counter;

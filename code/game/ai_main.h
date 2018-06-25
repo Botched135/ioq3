@@ -303,7 +303,7 @@ int		BotTeamLeader(bot_state_t *bs);
 
 // ADAM functions
 int BotAdamAgent(int clientNum, float thinktime,float *neatInput); 
-void BotStateToNEAT(float neatArray[MAX_CLIENTS][22], bot_state_t **bs);
+void BotStateToNEAT(float neatArray[MAX_CLIENTS][26], bot_state_t **bs);
 void AdamBotChatSetup(int client, bot_state_t *bs);
 int GetAdaptiveAgents(bot_state_t** bs);
 int AdamAttack(bot_state_t* bs);
@@ -311,6 +311,9 @@ int AdamSelectWeapon(bot_state_t* bs, float weaponIndex);
 int AdamJump(bot_state_t* bs, int airState);
 int GetAmmoWeapon(int weaponNumber, bot_state_t* bs);
 
+// ADAM distances
+#define ADAM_MAX_DISTANCE 	1220000000
+#define ADAM_MIN_DISTANCE	1140000000
 // ADAM flag
 #define ADAM_ADAPTIVE		0x00000001
 #define ADAM_RESET 			0x00000002

@@ -2677,8 +2677,8 @@ void AdamEnter_Fight(bot_state_t* bs)
 int Adam_Fight(bot_state_t* bs, float* neatData)
 {
 	aas_entityinfo_t entinfo;
-	vec3_t target;
-	int areanum;
+	vec3_t target,moveDirection,viewAngle;
+	int areanum,i, clientNumber, moveType;
 	if (BotIsDead(bs)) 
 	{
 		AdamEnter_Respawn(bs);
@@ -2725,18 +2725,55 @@ int Adam_Fight(bot_state_t* bs, float* neatData)
 		}
 		
 	}
+	clientNumber = bs->client;
 	// Update the enemy
 	BotUpdateBattleInventory(bs,bs->enemy);
 	AdamUpdateEnemy(bs);
+	moveType = MOVE_WALK;
+	// SHOOT
+	if(neatData[0] > NN_THRESHOLD)
+		AdamAttack(bs);
 
-	/*
-	SHOOT
-	JUMP
-	CROUCH
-	SWITCH
-	MOVE
-	AIM
-	*/
+	// JUMP
+	if(neatData[1]> NN_THRESHOLD)
+	{
+		if(neatData[2]> NN_THRESHOLD)
+		{
+			if(neatData[1] < neatData[2])
+			{
+				trap_EA_Crouch(clientNumber);
+				moveType = MOVE_CROUCH;
+			}
+		}
+		else
+		{
+			trap_EA_Jump(clientNumber);
+			moveType = MOVE_JUMP;
+		}
+	}
+	// CROUCH
+	else if(neatData[2]>NN_THRESHOLD)
+	{
+		trap_EA_Crouch(clientNumber);
+		moveType = MOVE_CROUCH;
+	}
+	
+	// SHOULD SWITCH?
+	if(neatData[3]>NN_THRESHOLD)
+	{
+		// SWITCH
+		AdamSelectWeapon(bs,neatData[4]);
+	}
+
+	// MOVE
+	moveDirection[0]= neatData[5];
+	moveDirection[1]= neatData[6];
+	moveDirection[2]= neatData[7];
+	trap_BotMoveInDirection(bs->ms,moveDirection,400,moveType);
+	// AIM
+	viewAngle[0] = neatData[8];
+	viewAngle[1] = neatData[9];
+	viewAngle[2] = neatData[10];
 
 	return qtrue;
 }

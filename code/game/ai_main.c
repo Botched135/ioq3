@@ -1419,9 +1419,9 @@ int BotAIStartFrame(int time) {
 	// FOR ADAM
 	char  pausing[2];
 	char* neatOutput;
-	float neatInput[MAX_CLIENTS][22];
+	float neatInput[MAX_CLIENTS][26];
 	// FINAL NUMBER IS DEFINED BY HOW MANY ACTIONS IT CAN TAKE
-	float neatActions[MAX_CLIENTS][10];
+	float neatActions[MAX_CLIENTS][11];
 	float fitnessOutput[MAX_CLIENTS][4];
 
 	G_CheckBotSpawn();
@@ -1917,19 +1917,19 @@ int BotAdamAgent(int clientNum,float thinktime, float *neatInput)
 
 }
 // Converts states from Quake III into floating number from 0-1
-void BotStateToNEAT(float neatArray[MAX_CLIENTS][22], bot_state_t **bs)
+// The first 3 is not used by the NEAT, but used in order to create
+// reference to the bots and their neural networks
+void BotStateToNEAT(float neatArray[MAX_CLIENTS][26], bot_state_t **bs)
 {
-	int i, amount;
-	amount = 0;
+	int i,tempSquareDist;
 	for(i = 0; i < MAX_CLIENTS;i++)
 	{
 		if(bs[i]->adamFlag & ADAM_ADAPTIVE)
 			continue;
 
-		//Initialization
+		//Initialization and NN connection
 		neatArray[i][0] = 2;
 		neatArray[i][1] = bs[i]->inuse;
-
 		neatArray[i][2] = bs[i]->client;
 
 		// Self Weapon
@@ -1971,23 +1971,32 @@ void BotStateToNEAT(float neatArray[MAX_CLIENTS][22], bot_state_t **bs)
 		*/
 		// Enemy Crouching
 		neatArray[i][15] = bs[i]->adamFlag & ADAM_ENEMYCROUCH;
+
 		// Enemy in Air
 		neatArray[i][16] = bs[i]->adamFlag & ADAM_ENEMYAIR;
+
 		// Enemy Shooting
 		neatArray[i][17] = bs[i]->adamFlag & ADAM_ENEMYFIRE;
+
 		// Enemy Weapon
 		neatArray[i][18] = bs[i]->enemyWeapon/9;
 
+		tempSquareDist = bs[i]->squaredEnemyDis;
+		if(tempSquareDist > ADAM_MAX_DISTANCE)
+			tempSquareDist = 1;
+		else
+			tempSquareDist = (tempSquareDist-ADAM_MIN_DISTANCE)/(ADAM_MAX_DISTANCE-ADAM_MIN_DISTANCE);
+		
 		// Enemy Distance
-
+		neatArray[i][19] = tempSquareDist;
 		// Enemy Dir (already normalized)
-		neatArray[i][19] = bs[i]->enemyDir[0];
-		neatArray[i][20] = bs[i]->enemyDir[1];
-		neatArray[i][21] = bs[i]->enemyDir[2];
+		neatArray[i][20] = bs[i]->enemyDir[0];
+		neatArray[i][21] = bs[i]->enemyDir[1];
+		neatArray[i][22] = bs[i]->enemyDir[2];
 		// Enemy Velocity
-		neatArray[i][22] = (bs[i]->enemyvelocity[0]+320)/320;
-		neatArray[i][23] = (bs[i]->enemyvelocity[1]+320)/320;
-		neatArray[i][24] = (bs[i]->enemyvelocity[2]+270)/270;
+		neatArray[i][23] = (bs[i]->enemyvelocity[0]+320)/320;
+		neatArray[i][24] = (bs[i]->enemyvelocity[1]+320)/320;
+		neatArray[i][25] = (bs[i]->enemyvelocity[2]+270)/270;
 
 	}
 	

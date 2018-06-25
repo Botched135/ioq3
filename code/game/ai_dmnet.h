@@ -72,3 +72,5 @@ void AdamEnter_Fight(bot_state_t* bs);
 int Adam_Fight(bot_state_t* bs, float* neatData);
 void AdamEnter_Respawn(bot_state_t* bs);
 int Adam_Respawn(bot_state_t*, float* neatData);
+
+#define NN_THRESHOLD 0.5

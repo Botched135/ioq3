@@ -3020,6 +3020,7 @@ int BotFindEnemy(bot_state_t *bs, int curenemy) {
 		VectorSubtract(entinfo.origin, bs->origin, dir);
 		squaredist = VectorLengthSquared(dir);
 		//if this entity is not carrying a flag
+		G_Printf("Squared dist: %i\n",squaredist);
 		if (!EntityCarriesFlag(&entinfo))
 		{
 			//if this enemy is further away than the current one
@@ -5301,8 +5302,9 @@ void BotDeathmatchAI(bot_state_t *bs, float thinktime) {
 	//execute AI nodes
 	i =0;
 	for (i = 0; i < MAX_NODESWITCHES; i++) {
-		if (bs->ainode(bs)) break;
+		//if (bs->ainode(bs)) break;
 	}
+	BotFindEnemy(bs,-1);
 	//G_Printf("X:%f,Y:%f,Z:%f \n",bs->enemyvelocity[0],bs->enemyvelocity[1],bs->enemyvelocity[2]);
 	//if the bot removed itself :)
 	if (!bs->inuse) return;
