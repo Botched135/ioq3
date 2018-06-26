@@ -1646,12 +1646,12 @@ int BotAIStartFrame(int time) {
 		pipeIn = trap_Adam_Com_Open_Pipe(pipeName,1);
 		trap_Adam_Com_Read_Neat(pipeIn,neatOutput,adaptiveAgents);
 		trap_Adam_Com_Close_Pipe(pipeIn);
-	
+		G_Printf("What is here %s \n",neatOutput);
 		// TRANSLATE STRING DATA TO FLOAT ARRAY
 		if(strlen(neatOutput) >0)
 		{
 			trap_Adam_Com_Array_To_Action(neatActions,neatOutput);
-			//G_Printf("First:%.2f, Second: %.2f, Third: %.2f\n",neatActions[0][0],neatActions[1][0],neatActions[2][0]);
+			G_Printf("First:%.2f, Second: %.2f, Third: %.2f\n",neatActions[0][0],neatActions[1][0],neatActions[2][0]);
 		}
 	}
 	// execute scheduled bot AI

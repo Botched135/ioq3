@@ -2694,7 +2694,7 @@ int Adam_Fight(bot_state_t* bs, float* neatData)
 		AdamEnter_Seek(bs);
 		return qfalse;
 	}
-
+	G_Printf("Ich bein here: %i",neatData[0]);
 	//update last time player was seen
 	if (BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, 360, bs->enemy)) 
 	{
@@ -2725,6 +2725,7 @@ int Adam_Fight(bot_state_t* bs, float* neatData)
 		}
 		
 	}
+	
 	clientNumber = bs->client;
 	// Update the enemy
 	BotUpdateBattleInventory(bs,bs->enemy);
@@ -2774,6 +2775,9 @@ int Adam_Fight(bot_state_t* bs, float* neatData)
 	viewAngle[0] = neatData[8];
 	viewAngle[1] = neatData[9];
 	viewAngle[2] = neatData[10];
+
+	// Look for better enemy, for next frame 
+	AdamFindEnemy(bs,bs->enemy);
 
 	return qtrue;
 }

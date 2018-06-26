@@ -5602,6 +5602,7 @@ int AdamFindEnemy(bot_state_t *bs, int currentEnemy)
 	else
 		curSquaredDist = 0;
 
+	// Currently this just finds the first, the best enemy and runs
 	for(i = 0;i< level.maxclients;i++)
 	{
 		if(i == bs->client) continue;
@@ -5620,8 +5621,9 @@ int AdamFindEnemy(bot_state_t *bs, int currentEnemy)
 		VectorSubtract(entinfo.origin,bs->origin,dir);
 		squareDist = VectorLengthSquared(dir);
 
-		//Around here the distance is considered
-
+		//If the other enemy is further away than the current then skip this check
+		if(currentEnemy >= 0 && squareDist > curSquaredDist) continue;
+	
 		//Notices if the enemy is shooting or we are taking dmg(since there is no lava etc. Else I need to check whether or not the bot is in lava)
 		if(currentEnemy <0 && (healthDecrease || EntityIsShooting(&entinfo)))
 			fov = 360;
@@ -5655,8 +5657,7 @@ int AdamFindEnemy(bot_state_t *bs, int currentEnemy)
 		bs->enemydeath_time = 0;
 		bs->enemyvisible_time = FloatTime();
 
-		//ADAM Specific
-
+		//ADAM Specific Setting of flags
 		if (BotAI_GetClientState(entinfo.number, &ps))
 		{
 			// Enemy is crouching
@@ -5689,11 +5690,13 @@ int AdamFindEnemy(bot_state_t *bs, int currentEnemy)
 		bs->squaredEnemyDis = squareDist;
 		return qtrue;
 	}
-	
-	VectorClear(bs->enemyDir);
-	bs->squaredEnemyDis = 0;
-	bs->adamFlag &= ~(ADAM_ENEMYCROUCH | ADAM_ENEMYAIR| ADAM_ENEMYFIRE);
-	bs->enemyWeapon = 0;
+	if(!bs->enemy)
+	{
+		VectorClear(bs->enemyDir);
+		bs->squaredEnemyDis = 0;
+		bs->adamFlag &= ~(ADAM_ENEMYCROUCH | ADAM_ENEMYAIR| ADAM_ENEMYFIRE);
+		bs->enemyWeapon = 0;
+	}
 	return qfalse;
 
 }

@@ -3899,7 +3899,7 @@ void trap_Adam_Com_Array_To_Action(float outputArray[MAX_CLIENTS][11], char* dat
 		return;
 
 	clientNum = atoi(tokenHolder);
-	
+	printf("%s \n",data);
 	while(tokenHolder != NULL)
 	{
 
