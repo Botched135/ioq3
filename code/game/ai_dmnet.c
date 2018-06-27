@@ -2694,7 +2694,6 @@ int Adam_Fight(bot_state_t* bs, float* neatData)
 		AdamEnter_Seek(bs);
 		return qfalse;
 	}
-	G_Printf("Ich bein here: %i",neatData[0]);
 	//update last time player was seen
 	if (BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, 360, bs->enemy)) 
 	{

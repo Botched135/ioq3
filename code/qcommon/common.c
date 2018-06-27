@@ -3841,6 +3841,8 @@ void trap_Adam_Com_Write_Neat(int file, float neatArray[MAX_CLIENTS][26],int ada
 	{
 		if(neatArray[i][0] == 2 && neatArray[i][1])
 		{
+			if(counter==adaptiveAgents)
+				break;
 			snprintf(temp,121,
 			"%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f:", 
 			neatArray[i][2],neatArray[i][3],neatArray[i][4],neatArray[i][5],neatArray[i][6],neatArray[i][7],neatArray[i][8],
@@ -3848,10 +3850,10 @@ void trap_Adam_Com_Write_Neat(int file, float neatArray[MAX_CLIENTS][26],int ada
 			neatArray[i][16],neatArray[i][17],neatArray[i][18],neatArray[i][19],neatArray[i][20],neatArray[i][21],neatArray[i][22],
 			neatArray[i][23],neatArray[i][24],neatArray[i][25]);
 			temp[121] = '\0';
-
+			
 			strcat(writeArray,temp);
-
 			counter++;
+			
 		}
 	}
 	
@@ -3894,7 +3896,6 @@ void trap_Adam_Com_Array_To_Action(float outputArray[MAX_CLIENTS][11], char* dat
 		return;
 
 	clientNum = atoi(tokenHolder);
-	printf("%s \n",data);
 	while(tokenHolder != NULL)
 	{
 
