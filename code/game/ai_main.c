@@ -103,7 +103,7 @@ void QDECL BotAI_Print(int type, char *fmt, ...) {
 
 	switch(type) {
 		case PRT_MESSAGE: {
-			G_Printf("%s", str);
+			G_Printf("BotPrint: %s", str);
 			break;
 		}
 		case PRT_WARNING: {
@@ -1247,7 +1247,7 @@ int BotAISetupClient(int client, struct bot_settings_s *settings, qboolean resta
 	bs->entergame_time = FloatTime();
 	bs->ms = trap_BotAllocMoveState();
 	bs->walker = trap_Characteristic_BFloat(bs->character, CHARACTERISTIC_WALKER, 0, 1);
-	bs->adamFlag &= ~ADAM_ADAPTIVE;
+
 	numbots++;
 
 	if (trap_Cvar_VariableIntegerValue("bot_testichat")) {
@@ -1344,7 +1344,7 @@ void BotResetState(bot_state_t *bs) {
 	weaponstate = bs->ws;
 	entergame_time = bs->entergame_time;
 	if(bs->adamFlag & ADAM_ADAPTIVE)
-		adaptive = 1;
+		adaptive |= (ADAM_ADAPTIVE | ADAM_RESET);
 	else
 	    adaptive = 0;
 	//free checkpoints and patrol points
@@ -1639,19 +1639,23 @@ int BotAIStartFrame(int time) {
 		BotStateToNEAT(neatInput,botstates);
 		pipeOut = trap_Adam_Com_Open_Pipe(pipeName,0);
 		trap_Adam_Com_Write_Neat(pipeOut,neatInput,adaptiveAgents);
+		//G_Printf("After writing to pipe\n");
 		trap_Adam_Com_Close_Pipe(pipeOut);
 
 	
 		// READ DATA
 		pipeIn = trap_Adam_Com_Open_Pipe(pipeName,1);
+		//G_Printf("Before reading from pipe\n");
 		trap_Adam_Com_Read_Neat(pipeIn,neatOutput,adaptiveAgents);
+		//G_Printf("After reading from pipe\n");
 		trap_Adam_Com_Close_Pipe(pipeIn);
-		G_Printf("What is here %s \n",neatOutput);
 		// TRANSLATE STRING DATA TO FLOAT ARRAY
 		if(strlen(neatOutput) >0)
 		{
+			//G_Printf("Before conversion to actions\n");
 			trap_Adam_Com_Array_To_Action(neatActions,neatOutput);
-			G_Printf("First:%.2f, Second: %.2f, Third: %.2f\n",neatActions[0][0],neatActions[1][0],neatActions[2][0]);
+			//G_Printf("After conversion to actions\n");
+			//G_Printf("First:%.2f, Second: %.2f, Third: %.2f\n",neatActions[0][0],neatActions[1][0],neatActions[2][0]);
 		}
 	}
 	// execute scheduled bot AI
@@ -1906,8 +1910,6 @@ int BotAdamAgent(int clientNum,float thinktime, float *neatInput)
 	{
 		bs->viewangles[i] = AngleMod(bs->viewangles[i]-SHORT2ANGLE(bs->cur_ps.delta_angles[i]));
 	}
-
-	AdamSelectWeapon(bs,0);
 	/*
 	=====================
 	END OF NEURAL NETWORK
@@ -1925,78 +1927,80 @@ void BotStateToNEAT(float neatArray[MAX_CLIENTS][26], bot_state_t **bs)
 	for(i = 0; i < MAX_CLIENTS;i++)
 	{
 		if(bs[i]->adamFlag & ADAM_ADAPTIVE)
-			continue;
+		{
+			//Initialization and NN connection
+			neatArray[i][0] = 2;
+			neatArray[i][1] = bs[i]->inuse;
+			neatArray[i][2] = bs[i]->client;
 
-		//Initialization and NN connection
-		neatArray[i][0] = 2;
-		neatArray[i][1] = bs[i]->inuse;
-		neatArray[i][2] = bs[i]->client;
+			// Self Weapon
+			neatArray[i][3] = bs[i]->weaponnum/9;
 
-		// Self Weapon
-		neatArray[i][3] = bs[i]->weaponnum/9;
-
-		// Self Ammo
-		neatArray[i][4] = GetAmmoWeapon(bs[i]->weaponnum,bs[i])/200;
+			// Self Ammo
+			neatArray[i][4] = GetAmmoWeapon(bs[i]->weaponnum,bs[i])/200;
 		
-		// Self HP
-		if(bs[i]->lastframe_health < 0)
-			neatArray[i][5] = 0;
-		else
-			neatArray[i][5] = bs[i]->lastframe_health/200;
+			// Self HP
+			if(bs[i]->lastframe_health < 0)
+				neatArray[i][5] = 0;
+			else
+				neatArray[i][5] = bs[i]->lastframe_health/200;
 		
-		// Self Armor
-		neatArray[i][6] = bs[i]->inventory[INVENTORY_ARMOR]/200;
+			// Self Armor
+			neatArray[i][6] = bs[i]->inventory[INVENTORY_ARMOR]/200;
 
-		// Self Crounch
-		neatArray[i][7] = bs[i]->cur_ps.pm_flags & PMF_DUCKED;
+			// Self Crounch
+			neatArray[i][7] = bs[i]->cur_ps.pm_flags & PMF_DUCKED;
 
-		// Self in-air
-		neatArray[i][8] = bs[i]->cur_ps.groundEntityNum == ENTITYNUM_NONE;
+			// Self in-air
+			neatArray[i][8] = bs[i]->cur_ps.groundEntityNum == ENTITYNUM_NONE;
 
-		// Self Velocity
-		neatArray[i][9]  = (bs[i]->velocity[0]+320)/320;
-		neatArray[i][10] = (bs[i]->velocity[1]+320)/320;
-		neatArray[i][11] = (bs[i]->velocity[2]+270)/270;
+			// Self Velocity
+			neatArray[i][9]  = (bs[i]->velocity[0]+320)/320;
+			neatArray[i][10] = (bs[i]->velocity[1]+320)/320;
+			neatArray[i][11] = (bs[i]->velocity[2]+270)/270;
 
-		// Self View angle
-		neatArray[i][12] = bs[i]->viewangles[0]/360;
-		neatArray[i][13] = bs[i]->viewangles[1]/360;
-		neatArray[i][14] = bs[i]->viewangles[2]/360;
+			// Self View angle
+			neatArray[i][12] = bs[i]->viewangles[0]/360;
+			neatArray[i][13] = bs[i]->viewangles[1]/360;
+			neatArray[i][14] = bs[i]->viewangles[2]/360;
 
 
-		/*
-		========================================================
-		ENEMY 
-		========================================================
-		*/
-		// Enemy Crouching
-		neatArray[i][15] = bs[i]->adamFlag & ADAM_ENEMYCROUCH;
+			/*
+			========================================================
+			ENEMY 
+			========================================================
+			*/
+			// Enemy Crouching
+			neatArray[i][15] = bs[i]->adamFlag & ADAM_ENEMYCROUCH;
 
-		// Enemy in Air
-		neatArray[i][16] = bs[i]->adamFlag & ADAM_ENEMYAIR;
+			// Enemy in Air
+			neatArray[i][16] = bs[i]->adamFlag & ADAM_ENEMYAIR;
 
-		// Enemy Shooting
-		neatArray[i][17] = bs[i]->adamFlag & ADAM_ENEMYFIRE;
+			// Enemy Shooting
+			neatArray[i][17] = bs[i]->adamFlag & ADAM_ENEMYFIRE;
 
-		// Enemy Weapon
-		neatArray[i][18] = bs[i]->enemyWeapon/9;
+			// Enemy Weapon
+			neatArray[i][18] = bs[i]->enemyWeapon/9;
+			
+			tempSquareDist = bs[i]->squaredEnemyDis;
+			if(tempSquareDist > ADAM_MAX_DISTANCE)
+				tempSquareDist = 1;
+			else if(tempSquareDist < ADAM_MIN_DISTANCE)
+				tempSquareDist = 0;
+			else
+				tempSquareDist = (tempSquareDist-ADAM_MIN_DISTANCE)/(ADAM_MAX_DISTANCE-ADAM_MIN_DISTANCE);
 
-		tempSquareDist = bs[i]->squaredEnemyDis;
-		if(tempSquareDist > ADAM_MAX_DISTANCE)
-			tempSquareDist = 1;
-		else
-			tempSquareDist = (tempSquareDist-ADAM_MIN_DISTANCE)/(ADAM_MAX_DISTANCE-ADAM_MIN_DISTANCE);
-		
-		// Enemy Distance
-		neatArray[i][19] = tempSquareDist;
-		// Enemy Dir (already normalized)
-		neatArray[i][20] = bs[i]->enemyDir[0];
-		neatArray[i][21] = bs[i]->enemyDir[1];
-		neatArray[i][22] = bs[i]->enemyDir[2];
-		// Enemy Velocity
-		neatArray[i][23] = (bs[i]->enemyvelocity[0]+320)/320;
-		neatArray[i][24] = (bs[i]->enemyvelocity[1]+320)/320;
-		neatArray[i][25] = (bs[i]->enemyvelocity[2]+270)/270;
+			// Enemy Distance
+			neatArray[i][19] = tempSquareDist;
+			// Enemy Dir (already normalized)
+			neatArray[i][20] = bs[i]->enemyDir[0];
+			neatArray[i][21] = bs[i]->enemyDir[1];
+			neatArray[i][22] = bs[i]->enemyDir[2];
+			// Enemy Velocity
+			neatArray[i][23] = (bs[i]->enemyvelocity[0]+320)/320;
+			neatArray[i][24] = (bs[i]->enemyvelocity[1]+320)/320;
+			neatArray[i][25] = (bs[i]->enemyvelocity[2]+270)/270;
+		}
 
 	}
 	
