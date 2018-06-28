@@ -3819,7 +3819,9 @@ void trap_Adam_Com_Read_Neat(int file, char* outputArray,int adaptiveAgents)
 	int bufferSize = adaptiveAgents*59; // Actually 58, but one extra for safety
 	returnVal = read(file,outputArray,bufferSize);
 	if(returnVal < 0)
+	{
 		printf("READ ERROR! \n");
+	}
 }
 
 void trap_Adam_Com_Read_Pause(int file, char* input)
@@ -3884,7 +3886,7 @@ void trap_Adam_Com_Write_Ready(int file)
 
 }
 
-void trap_Adam_Com_Array_To_Action(float outputArray[MAX_CLIENTS][11], char* data)
+void trap_Adam_Com_Array_To_Action(float outputArray[MAX_CLIENTS][10], char* data)
 {
 	char* tokenHolder;
 	int clientNum, counter;

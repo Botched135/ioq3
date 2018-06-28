@@ -831,7 +831,7 @@ void trap_Adam_Com_Write_Ready(int file)
 	syscall(ADAM_COM_WRITE_READY,file);
 }
 
-void trap_Adam_Com_Array_To_Action(float outputArray[MAX_CLIENTS][11], char* data)
+void trap_Adam_Com_Array_To_Action(float outputArray[MAX_CLIENTS][10], char* data)
 {
 	syscall(ADAM_COM_ARRAY_TO_ACTION,outputArray,data);
 }

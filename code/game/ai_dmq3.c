@@ -3758,7 +3758,7 @@ void BotMapScripts(bot_state_t *bs) {
 			bs->ideal_viewangles[YAW] = AngleMod(bs->ideal_viewangles[YAW]);
 			//
 			if (InFieldOfVision(bs->viewangles, 20, bs->ideal_viewangles)) {
-				//trap_EA_Attack(bs->client);
+				trap_EA_Attack(bs->client);
 			}
 		}
 	}
@@ -5253,6 +5253,7 @@ void BotDeathmatchAI(bot_state_t *bs, float thinktime) {
 		//
 		bs->setupcount = 0;
 		//
+		bs->adamFlag = 0;
 		if(strcmp(bs->settings.characterfile,"bots/adam_c.c")==0)
 		{
 			bs->adamFlag |= (ADAM_ADAPTIVE | ADAM_RESET);
@@ -5303,7 +5304,7 @@ void BotDeathmatchAI(bot_state_t *bs, float thinktime) {
 	for (i = 0; i < MAX_NODESWITCHES; i++) {
 		if (bs->ainode(bs)) break;
 	}
-	BotFindEnemy(bs,-1);
+	
 	if (!bs->inuse) return;
 
 	//if the bot executed too many AI nodes

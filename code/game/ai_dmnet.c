@@ -303,7 +303,7 @@ int BotGetItemLongTermGoal(bot_state_t *bs, int tfl, bot_goal_t *goal) {
 			//get the goal at the top of the stack
 			trap_BotGetTopGoal(bs->gs, goal);
 			trap_BotGoalName(goal->number, buf, sizeof(buf));
-			BotAI_Print(PRT_MESSAGE, "%1.1f: new long term goal %s\n", FloatTime(), buf);
+			//BotAI_Print(PRT_MESSAGE, "%1.1f: new long term goal %s\n", FloatTime(), buf);
             
 			bs->ltg_time = FloatTime() + 20;
 		}
@@ -1905,7 +1905,6 @@ int AINode_Seek_LTG(bot_state_t *bs)
 			//get the goal at the top of the stack
 			trap_BotGetTopGoal(bs->gs, &tmpgoal);
 			trap_BotGoalName(tmpgoal.number, buf, 144);
-			G_Printf("GoalName: %s \n",buf);
 			//BotAI_Print(PRT_MESSAGE, "new nearby goal %s\n", buf);
 			//time the bot gets to pick up the nearby goal item
 			bs->nbg_time = FloatTime() + 4 + range * 0.01;
@@ -2636,6 +2635,7 @@ void AdamEnter_Seek(bot_state_t* bs)
 }
 int Adam_Seek(bot_state_t* bs, float* neatData)
 {
+	vec3_t movement;
 	if (BotIsDead(bs)) 
 	{
 		AdamEnter_Respawn(bs);
@@ -2661,7 +2661,10 @@ int Adam_Seek(bot_state_t* bs, float* neatData)
 		AdamEnter_Fight(bs);
 		return qfalse;
 	}
-	trap_EA_Jump(bs->client);
+	movement[0] = 1.0f;
+	movement[1] = -1.0f;
+	movement[2] = 0.0f;
+	trap_BotMoveInDirection(bs->ms,movement,400,MOVE_WALK);
 	//
 	/*
 	START MOVEMENT SETUP HERE.
@@ -2732,7 +2735,7 @@ int Adam_Fight(bot_state_t* bs, float* neatData)
 	moveType = MOVE_WALK;
 	// SHOOT
 	if(neatData[0] > NN_THRESHOLD)
-		AdamAttack(bs);
+		BotCheckAttack(bs); // Or adam Attack
 
 	// JUMP
 	if(neatData[1]> NN_THRESHOLD)
@@ -2766,14 +2769,14 @@ int Adam_Fight(bot_state_t* bs, float* neatData)
 	}
 
 	// MOVE
-	moveDirection[0]= neatData[5];
-	moveDirection[1]= neatData[6];
-	moveDirection[2]= neatData[7];
-	trap_BotMoveInDirection(bs->ms,moveDirection,400,moveType);
-	// AIM
-	viewAngle[0] = neatData[8];
-	viewAngle[1] = neatData[9];
-	viewAngle[2] = neatData[10];
+	moveDirection[0]= (neatData[5]*2)-1;
+	moveDirection[1]= (neatData[6]*2)-1;
+	moveDirection[2]= 0.0f;
+	VectorNormalize(moveDirection);
+	trap_BotMoveInDirection(bs->ms,moveDirection,2000,MOVE_WALK);
+	viewAngle[0] = neatData[7];
+	viewAngle[1] = neatData[8];
+	viewAngle[2] = neatData[9];
 
 	// Look for better enemy, for next frame 
 	AdamFindEnemy(bs,bs->enemy);

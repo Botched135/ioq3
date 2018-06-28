@@ -1328,12 +1328,13 @@ void BotResetState(bot_state_t *bs) {
 	int adaptive;
 	bot_settings_t settings;
 	int character;
-	playerState_t ps;							//current player state
+	playerState_t ps;					//current player state
 	float entergame_time;
 
 	//save some things that should not be reset here
 	memcpy(&settings, &bs->settings, sizeof(bot_settings_t));
 	memcpy(&ps, &bs->cur_ps, sizeof(playerState_t));
+	adaptive = 0;
 	inuse = bs->inuse;
 	client = bs->client;
 	entitynum = bs->entitynum;
@@ -1345,8 +1346,7 @@ void BotResetState(bot_state_t *bs) {
 	entergame_time = bs->entergame_time;
 	if(bs->adamFlag & ADAM_ADAPTIVE)
 		adaptive |= (ADAM_ADAPTIVE | ADAM_RESET);
-	else
-	    adaptive = 0;
+	
 	//free checkpoints and patrol points
 	BotFreeWaypoints(bs->checkpoints);
 	BotFreeWaypoints(bs->patrolpoints);
@@ -1421,14 +1421,14 @@ int BotAIStartFrame(int time) {
 	char* neatOutput;
 	float neatInput[MAX_CLIENTS][26];
 	// FINAL NUMBER IS DEFINED BY HOW MANY ACTIONS IT CAN TAKE
-	float neatActions[MAX_CLIENTS][11];
+	float neatActions[MAX_CLIENTS][10];
 	float fitnessOutput[MAX_CLIENTS][4];
 
 	G_CheckBotSpawn();
 	
-	adaptiveAgents = GetAdaptiveAgents(botstates);
+	//adaptiveAgents = GetAdaptiveAgents(botstates);
 
-	if(adaptiveAgents)
+	/*if(adaptiveAgents)
 	{
 		if(strlen(pipeName) == 0)
 		{
@@ -1453,7 +1453,7 @@ int BotAIStartFrame(int time) {
 	}
 	else
 		trap_Cvar_Set("bot_pause","0");
-
+	*/
 	trap_Cvar_Update(&bot_rocketjump);
 	trap_Cvar_Update(&bot_grapple);
 	trap_Cvar_Update(&bot_fastchat);
@@ -1632,7 +1632,7 @@ int BotAIStartFrame(int time) {
 
 	floattime = trap_AAS_Time();
 	//Collect data here.
-	if(adaptiveAgents)
+	/*if(adaptiveAgents)
 	{
 		// WRITE DATA
 	
@@ -1645,7 +1645,6 @@ int BotAIStartFrame(int time) {
 	
 		// READ DATA
 		pipeIn = trap_Adam_Com_Open_Pipe(pipeName,1);
-		//G_Printf("Before reading from pipe\n");
 		trap_Adam_Com_Read_Neat(pipeIn,neatOutput,adaptiveAgents);
 		//G_Printf("After reading from pipe\n");
 		trap_Adam_Com_Close_Pipe(pipeIn);
@@ -1657,7 +1656,7 @@ int BotAIStartFrame(int time) {
 			//G_Printf("After conversion to actions\n");
 			//G_Printf("First:%.2f, Second: %.2f, Third: %.2f\n",neatActions[0][0],neatActions[1][0],neatActions[2][0]);
 		}
-	}
+	}*/
 	// execute scheduled bot AI
 	for( i = 0; i < MAX_CLIENTS; i++ ) {
 		if( !botstates[i] || !botstates[i]->inuse ) {
@@ -1841,7 +1840,6 @@ int BotAdamAgent(int clientNum,float thinktime, float *neatInput)
 	trap_EA_ResetInput(clientNum);
 
 	bs = botstates[clientNum];
-
 	// From BotAI
 	if(!bs || !bs->inuse)
 	{
@@ -2077,6 +2075,8 @@ int AdamSelectWeapon(bot_state_t* bs, float weaponIndex)
 		G_Printf("Client %i: WEAPON SELECTION FAULTY \n",bs->client);
 		return qfalse;
 	}
+	else if(convertedWeapon > 9)
+		convertedWeapon = 9;
 
 	switch(convertedWeapon)
 	{

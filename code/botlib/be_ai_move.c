@@ -1114,7 +1114,7 @@ int BotWalkInDirection(bot_movestate_t *ms, vec3_t dir, float speed, int type)
 	int presencetype, maxframes, cmdframes, stopevent;
 	aas_clientmove_t move;
 	float dist;
-
+	
 	if (AAS_OnGround(ms->origin, ms->presencetype, ms->entitynum)) ms->moveflags |= MFL_ONGROUND;
 	//if the bot is on the ground
 	if (ms->moveflags & MFL_ONGROUND)
@@ -1130,6 +1130,7 @@ int BotWalkInDirection(bot_movestate_t *ms, vec3_t dir, float speed, int type)
 		hordir[0] = dir[0];
 		hordir[1] = dir[1];
 		hordir[2] = 0;
+		
 		VectorNormalize(hordir);
 		//if the bot is not supposed to jump
 		if (!(type & MOVE_JUMP))
@@ -1207,11 +1208,13 @@ int BotWalkInDirection(bot_movestate_t *ms, vec3_t dir, float speed, int type)
 	} //end if
 	else
 	{
+		
 		if (ms->moveflags & MFL_BARRIERJUMP)
 		{
 			//if near the top or going down
 			if (ms->velocity[2] < 50)
 			{
+				botimport.Print(PRT_MESSAGE,"In else case\n");
 				EA_Move(ms->client, dir, speed);
 			} //end if
 		} //end if
@@ -1228,9 +1231,9 @@ int BotWalkInDirection(bot_movestate_t *ms, vec3_t dir, float speed, int type)
 int BotMoveInDirection(int movestate, vec3_t dir, float speed, int type)
 {
 	bot_movestate_t *ms;
-
 	ms = BotMoveStateFromHandle(movestate);
 	if (!ms) return qfalse;
+	printf("Direction: %f %f %f\n",dir[0],dir[1],dir[2]);
 	//if swimming
 	if (AAS_Swimming(ms->origin))
 	{

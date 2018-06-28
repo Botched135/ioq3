@@ -1790,6 +1790,7 @@ void G_RunFrame( int levelTime ) {
 
 	// if we are waiting for the level to restart, do nothing
 	if ( level.restarted ) {
+		G_Printf("Ping!\n");
 		return;
 	}
 
