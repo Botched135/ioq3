@@ -1233,7 +1233,7 @@ int BotMoveInDirection(int movestate, vec3_t dir, float speed, int type)
 	bot_movestate_t *ms;
 	ms = BotMoveStateFromHandle(movestate);
 	if (!ms) return qfalse;
-	printf("Direction: %f %f %f\n",dir[0],dir[1],dir[2]);
+	//printf("Direction: %f %f %f\n",dir[0],dir[1],dir[2]);
 	//if swimming
 	if (AAS_Swimming(ms->origin))
 	{

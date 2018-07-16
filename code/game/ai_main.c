@@ -1426,9 +1426,9 @@ int BotAIStartFrame(int time) {
 
 	G_CheckBotSpawn();
 	
-	//adaptiveAgents = GetAdaptiveAgents(botstates);
+	adaptiveAgents = GetAdaptiveAgents(botstates);
 
-	/*if(adaptiveAgents)
+	if(adaptiveAgents)
 	{
 		if(strlen(pipeName) == 0)
 		{
@@ -1453,7 +1453,7 @@ int BotAIStartFrame(int time) {
 	}
 	else
 		trap_Cvar_Set("bot_pause","0");
-	*/
+	
 	trap_Cvar_Update(&bot_rocketjump);
 	trap_Cvar_Update(&bot_grapple);
 	trap_Cvar_Update(&bot_fastchat);
@@ -1632,7 +1632,7 @@ int BotAIStartFrame(int time) {
 
 	floattime = trap_AAS_Time();
 	//Collect data here.
-	/*if(adaptiveAgents)
+	if(adaptiveAgents)
 	{
 		// WRITE DATA
 	
@@ -1656,7 +1656,7 @@ int BotAIStartFrame(int time) {
 			//G_Printf("After conversion to actions\n");
 			//G_Printf("First:%.2f, Second: %.2f, Third: %.2f\n",neatActions[0][0],neatActions[1][0],neatActions[2][0]);
 		}
-	}*/
+	}
 	// execute scheduled bot AI
 	for( i = 0; i < MAX_CLIENTS; i++ ) {
 		if( !botstates[i] || !botstates[i]->inuse ) {
@@ -1901,7 +1901,6 @@ int BotAdamAgent(int clientNum,float thinktime, float *neatInput)
 	if(!bs->inuse)
 		return qfalse;
 
-	bs->lastframe_health = bs->inventory[INVENTORY_HEALTH];
 	bs->lasthitcount = bs->cur_ps.persistant[PERS_HITS];
 	//subtract the delta angles
 	for(i = 0;i<3;i++)
@@ -1942,7 +1941,8 @@ void BotStateToNEAT(float neatArray[MAX_CLIENTS][26], bot_state_t **bs)
 				neatArray[i][5] = 0;
 			else
 				neatArray[i][5] = bs[i]->lastframe_health/200;
-		
+
+			//G_Printf("Health:%f\n",bs[i]->lastframe_health);
 			// Self Armor
 			neatArray[i][6] = bs[i]->inventory[INVENTORY_ARMOR]/200;
 

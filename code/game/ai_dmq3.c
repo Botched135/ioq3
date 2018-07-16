@@ -5258,6 +5258,7 @@ void BotDeathmatchAI(bot_state_t *bs, float thinktime) {
 		{
 			bs->adamFlag |= (ADAM_ADAPTIVE | ADAM_RESET);
 			bs->flags &= ~BFL_IDEALVIEWSET;
+			bs->lastTime = 0.0f;
 			G_Printf("ADAPTIVE AGENT INITIALIZED\n");
 			return;
 		}
@@ -5494,8 +5495,10 @@ ADAM FUNCTIONS
 void AdamBotIntermission(bot_state_t *bs)
 {
 	bs->flags &= ~BFL_IDEALVIEWSET;
-	if (!BotIntermission(bs)) 
-	{
+	if (!BotIntermission(bs)) {
+		//set the teleport time
+		BotSetTeleportTime(bs);
+		//update some inventory values
 		BotUpdateInventory(bs);
 		//check out the snapshot
 		BotCheckSnapshot(bs);
@@ -5754,4 +5757,15 @@ void AdamUpdateEnemy(bot_state_t *bs)
 	VectorCopy(dir,bs->enemyDir);
 	VectorNormalize(bs->enemyDir);
 	bs->squaredEnemyDis = squareDist;
+}
+
+int BotMoveInRandDir(bot_state_t* bs, vec3_t dirResult)
+{
+	vec3_t dir;
+	float x,y;
+	x = (random()*2)-1;
+	y = (random()*2)-1;
+	VectorSet(dir,x,y,0);
+	VectorCopy(dir,dirResult);
+	return trap_BotMoveInDirection(bs->ms,dir,400,MOVE_WALK);
 }

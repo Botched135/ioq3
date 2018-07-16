@@ -182,6 +182,7 @@ void AdamBotIntermission(bot_state_t *bs);
 void AdamBotMapScripts(bot_state_t *bs);
 int  AdamFindEnemy(bot_state_t *bs, int currentEnemy);
 void AdamUpdateEnemy(bot_state_t *bs);
+int BotMoveInRandDir(bot_state_t* bs, vec3_t dirResult);
 
 //ctf flags
 #define CTF_FLAG_NONE		0

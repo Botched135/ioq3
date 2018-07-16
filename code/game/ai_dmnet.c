@@ -2669,6 +2669,19 @@ int Adam_Seek(bot_state_t* bs, float* neatData)
 	/*
 	START MOVEMENT SETUP HERE.
 	*/
+	BotSetupForMovement(bs);
+	movement[0] = 1.0f;
+	movement[1] = -1.0f;
+	movement[2] = 0.0f;
+	if(bs->lastTime +5 > FloatTime())
+	{
+		trap_BotMoveInDirection(bs->ms,bs->lastMovement,400, MOVE_WALK);
+	}
+	else
+	{
+		BotMoveInRandDir(bs,bs->lastMovement);
+		bs->lastTime = FloatTime();
+	}
 	return qtrue;
 
 }
@@ -2732,8 +2745,9 @@ int Adam_Fight(bot_state_t* bs, float* neatData)
 	// Update the enemy
 	BotUpdateBattleInventory(bs,bs->enemy);
 	AdamUpdateEnemy(bs);
+	BotSetupForMovement(bs);
 	moveType = MOVE_WALK;
-	// SHOOT
+/*	// SHOOT
 	if(neatData[0] > NN_THRESHOLD)
 		BotCheckAttack(bs); // Or adam Attack
 
@@ -2767,13 +2781,23 @@ int Adam_Fight(bot_state_t* bs, float* neatData)
 		// SWITCH
 		AdamSelectWeapon(bs,neatData[4]);
 	}
-
+*/
 	// MOVE
 	moveDirection[0]= (neatData[5]*2)-1;
 	moveDirection[1]= (neatData[6]*2)-1;
 	moveDirection[2]= 0.0f;
 	VectorNormalize(moveDirection);
-	trap_BotMoveInDirection(bs->ms,moveDirection,2000,MOVE_WALK);
+	
+	if(bs->lastTime +5 < FloatTime())
+	{
+		trap_BotMoveInDirection(bs->ms,bs->lastMovement,400, MOVE_WALK);
+	}
+	else
+	{
+		BotMoveInRandDir(bs,bs->lastMovement);
+		bs->lastTime = FloatTime();
+	}
+		
 	viewAngle[0] = neatData[7];
 	viewAngle[1] = neatData[8];
 	viewAngle[2] = neatData[9];

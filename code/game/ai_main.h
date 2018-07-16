@@ -279,6 +279,8 @@ typedef struct bot_state_s
 
 	int squaredEnemyDis;
 	vec3_t enemyDir;
+	vec3_t lastMovement;
+	float lastTime;
 	
 } bot_state_t;
 

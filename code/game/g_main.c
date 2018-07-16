@@ -1868,6 +1868,7 @@ void G_RunFrame( int levelTime ) {
 	ent = &g_entities[0];
 	for (i=0 ; i < level.maxclients ; i++, ent++ ) {
 		if ( ent->inuse ) {
+
 			ClientEndFrame( ent );
 		}
 	}
