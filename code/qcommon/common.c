@@ -3852,10 +3852,6 @@ void trap_Adam_Com_Write_Neat(int file, float neatArray[MAX_CLIENTS][26],int ada
 			neatArray[i][16],neatArray[i][17],neatArray[i][18],neatArray[i][19],neatArray[i][20],neatArray[i][21],neatArray[i][22],
 			neatArray[i][23],neatArray[i][24],neatArray[i][25]);
 			temp[121] = '\0';
-			if(neatArray[i][17]>1)
-			{
-				printf("WARNING!!\n");
-			}
 			strcat(writeArray,temp);
 			counter++;
 			

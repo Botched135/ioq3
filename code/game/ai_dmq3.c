@@ -5317,6 +5317,7 @@ void BotDeathmatchAI(bot_state_t *bs, float thinktime) {
 		BotAI_Print(PRT_ERROR, "%s at %1.1f switched more than %d AI nodes\n", name, FloatTime(), MAX_NODESWITCHES);
 	}
 	//
+
 	bs->lastframe_health = bs->inventory[INVENTORY_HEALTH];
 	bs->lasthitcount = bs->cur_ps.persistant[PERS_HITS];
 }

@@ -1901,6 +1901,7 @@ int BotAdamAgent(int clientNum,float thinktime, float *neatInput)
 	if(!bs->inuse)
 		return qfalse;
 
+	bs->lastframe_health = bs->inventory[INVENTORY_HEALTH];
 	bs->lasthitcount = bs->cur_ps.persistant[PERS_HITS];
 	//subtract the delta angles
 	for(i = 0;i<3;i++)
@@ -1925,6 +1926,7 @@ void BotStateToNEAT(float neatArray[MAX_CLIENTS][26], bot_state_t **bs)
 	{
 		if(bs[i]->adamFlag & ADAM_ADAPTIVE)
 		{
+			AdamBotIntermission(bs[i]);
 			//Initialization and NN connection
 			neatArray[i][0] = 2;
 			neatArray[i][1] = bs[i]->inuse;
@@ -1942,7 +1944,6 @@ void BotStateToNEAT(float neatArray[MAX_CLIENTS][26], bot_state_t **bs)
 			else
 				neatArray[i][5] = bs[i]->lastframe_health/200;
 
-			//G_Printf("Health:%f\n",bs[i]->lastframe_health);
 			// Self Armor
 			neatArray[i][6] = bs[i]->inventory[INVENTORY_ARMOR]/200;
 
@@ -1969,14 +1970,17 @@ void BotStateToNEAT(float neatArray[MAX_CLIENTS][26], bot_state_t **bs)
 			========================================================
 			*/
 			// Enemy Crouching
-			neatArray[i][15] = bs[i]->adamFlag & ADAM_ENEMYCROUCH;
+			neatArray[i][15] = (bs[i]->adamFlag & ADAM_ENEMYCROUCH);
 
 			// Enemy in Air
-			neatArray[i][16] = bs[i]->adamFlag & ADAM_ENEMYAIR;
+			neatArray[i][16] = (bs[i]->adamFlag & ADAM_ENEMYAIR);
 
 			// Enemy Shooting
-			neatArray[i][17] = bs[i]->adamFlag & ADAM_ENEMYFIRE;
-
+			neatArray[i][17] = (bs[i]->adamFlag & ADAM_ENEMYFIRE);
+			if(neatArray[i][16] > 1)
+			{
+				G_Printf("The flag: %d and the check: %d \n",bs[i]->adamFlag,neatArray[i][16]);
+			}
 			// Enemy Weapon
 			neatArray[i][18] = bs[i]->enemyWeapon/9;
 			
