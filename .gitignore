@@ -40,3 +40,7 @@ profile
 *.opensdf
 *.suo
 .vscode/
+
+# VSC
+####################
+*.code-workspace

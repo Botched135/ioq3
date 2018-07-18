@@ -5687,8 +5687,9 @@ int AdamFindEnemy(bot_state_t *bs, int currentEnemy)
 			bs->adamFlag &= ~(ADAM_ENEMYCROUCH | ADAM_ENEMYAIR | ADAM_ENEMYFIRE);
 			bs->enemyWeapon = 0;
 		}
+		
+		VectorNormalize(dir);
 		VectorCopy(dir,bs->enemyDir);
-		VectorNormalize(bs->enemyDir);
 		bs->squaredEnemyDis = squareDist;
 		return qtrue;
 	}

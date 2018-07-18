@@ -3832,7 +3832,7 @@ void trap_Adam_Com_Read_Pause(int file, char* input)
 		printf("READ ERROR! \n");
 }
 
-void trap_Adam_Com_Write_Neat(int file, float neatArray[MAX_CLIENTS][26],int adaptiveAgents)
+void trap_Adam_Com_Write_Neat(int file, float neatArray[MAX_CLIENTS][ADAM_NN_INPUT],int adaptiveAgents)
 {
 	int i, counter, returnVal;
 	char *writeArray;
@@ -3860,7 +3860,7 @@ void trap_Adam_Com_Write_Neat(int file, float neatArray[MAX_CLIENTS][26],int ada
 	
 	if(counter >0)
 	{
-		//printf("WriteArray: %s\n",writeArray);
+		printf("WriteArray: %s\n",writeArray);
         returnVal=write(file,writeArray, strlen(writeArray));
 		if(returnVal < 0)
 			printf("WRITE ERROR");
@@ -3869,7 +3869,7 @@ void trap_Adam_Com_Write_Neat(int file, float neatArray[MAX_CLIENTS][26],int ada
 	free(writeArray);
 }
 
-void trap_Adam_Com_Write_Fitness(int file, float fitnessArray[MAX_CLIENTS][4], int adaptiveAgents)
+void trap_Adam_Com_Write_Fitness(int file, float fitnessArray[MAX_CLIENTS][ADAM_NN_FITNESS], int adaptiveAgents)
 {
 	//TODO
 }
@@ -3885,7 +3885,7 @@ void trap_Adam_Com_Write_Ready(int file)
 
 }
 
-void trap_Adam_Com_Array_To_Action(float outputArray[MAX_CLIENTS][10], char* data)
+void trap_Adam_Com_Array_To_Action(float outputArray[MAX_CLIENTS][ADAM_NN_OUTPUT], char* data)
 {
 	char* tokenHolder;
 	int clientNum, counter;

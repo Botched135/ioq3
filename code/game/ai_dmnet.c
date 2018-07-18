@@ -2754,26 +2754,14 @@ int Adam_Fight(bot_state_t* bs, float* neatData)
 	// JUMP
 	if(neatData[1]> NN_THRESHOLD)
 	{
-		if(neatData[2]> NN_THRESHOLD)
-		{
-			if(neatData[1] < neatData[2])
-			{
-				trap_EA_Crouch(clientNumber);
-				moveType = MOVE_CROUCH;
-			}
-		}
+		if(neatData[2]> NN_THRESHOLD &&  neatData[2] > neatData[1])
+			moveType = MOVE_CROUCH;
 		else
-		{
-			trap_EA_Jump(clientNumber);
 			moveType = MOVE_JUMP;
-		}
 	}
 	// CROUCH
 	else if(neatData[2]>NN_THRESHOLD)
-	{
-		trap_EA_Crouch(clientNumber);
 		moveType = MOVE_CROUCH;
-	}
 	
 	// SHOULD SWITCH?
 	if(neatData[3]>NN_THRESHOLD)
@@ -2814,6 +2802,7 @@ void AdamEnter_Respawn(bot_state_t* bs)
 	trap_BotResetGoalState(bs->gs);
 	trap_BotResetAvoidGoals(bs->gs);
 	trap_BotResetAvoidReach(bs->ms);
+	bs->adamFlag &= ~(ADAM_ENEMYCROUCH | ADAM_ENEMYAIR| ADAM_ENEMYFIRE);
 	//if the bot wants to chat
 	bs->respawn_time = FloatTime();
 	bs->respawnchat_time = 0;

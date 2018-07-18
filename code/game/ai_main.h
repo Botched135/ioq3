@@ -305,7 +305,7 @@ int		BotTeamLeader(bot_state_t *bs);
 
 // ADAM functions
 int BotAdamAgent(int clientNum, float thinktime,float *neatInput); 
-void BotStateToNEAT(float neatArray[MAX_CLIENTS][26], bot_state_t **bs);
+void BotStateToNEAT(float neatArray[MAX_CLIENTS][ADAM_NN_INPUT], bot_state_t **bs);
 void AdamBotChatSetup(int client, bot_state_t *bs);
 int GetAdaptiveAgents(bot_state_t** bs);
 int AdamAttack(bot_state_t* bs);

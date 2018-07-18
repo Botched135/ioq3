@@ -1419,10 +1419,10 @@ int BotAIStartFrame(int time) {
 	// FOR ADAM
 	char  pausing[2];
 	char* neatOutput;
-	float neatInput[MAX_CLIENTS][26];
+	float neatInput[MAX_CLIENTS][ADAM_NN_INPUT];
 	// FINAL NUMBER IS DEFINED BY HOW MANY ACTIONS IT CAN TAKE
-	float neatActions[MAX_CLIENTS][10];
-	float fitnessOutput[MAX_CLIENTS][4];
+	float neatActions[MAX_CLIENTS][ADAM_NN_OUTPUT];
+	float fitnessOutput[MAX_CLIENTS][ADAM_NN_FITNESS];
 
 	G_CheckBotSpawn();
 	
@@ -1919,14 +1919,13 @@ int BotAdamAgent(int clientNum,float thinktime, float *neatInput)
 // Converts states from Quake III into floating number from 0-1
 // The first 3 is not used by the NEAT, but used in order to create
 // reference to the bots and their neural networks
-void BotStateToNEAT(float neatArray[MAX_CLIENTS][26], bot_state_t **bs)
+void BotStateToNEAT(float neatArray[MAX_CLIENTS][ADAM_NN_INPUT], bot_state_t **bs)
 {
 	int i,tempSquareDist;
 	for(i = 0; i < MAX_CLIENTS;i++)
 	{
 		if(bs[i]->adamFlag & ADAM_ADAPTIVE)
 		{
-			AdamBotIntermission(bs[i]);
 			//Initialization and NN connection
 			neatArray[i][0] = 2;
 			neatArray[i][1] = bs[i]->inuse;
@@ -1948,7 +1947,7 @@ void BotStateToNEAT(float neatArray[MAX_CLIENTS][26], bot_state_t **bs)
 			neatArray[i][6] = bs[i]->inventory[INVENTORY_ARMOR]/200;
 
 			// Self Crounch
-			neatArray[i][7] = bs[i]->cur_ps.pm_flags & PMF_DUCKED;
+			neatArray[i][7] = (bs[i]->cur_ps.pm_flags & PMF_DUCKED)== PMF_DUCKED;
 
 			// Self in-air
 			neatArray[i][8] = bs[i]->cur_ps.groundEntityNum == ENTITYNUM_NONE;
@@ -1963,24 +1962,19 @@ void BotStateToNEAT(float neatArray[MAX_CLIENTS][26], bot_state_t **bs)
 			neatArray[i][13] = bs[i]->viewangles[1]/360;
 			neatArray[i][14] = bs[i]->viewangles[2]/360;
 
-
 			/*
 			========================================================
 			ENEMY 
 			========================================================
 			*/
 			// Enemy Crouching
-			neatArray[i][15] = (bs[i]->adamFlag & ADAM_ENEMYCROUCH);
+			neatArray[i][15] = (bs[i]->adamFlag & ADAM_ENEMYCROUCH) == ADAM_ENEMYCROUCH;
 
 			// Enemy in Air
-			neatArray[i][16] = (bs[i]->adamFlag & ADAM_ENEMYAIR);
+			neatArray[i][16] = (bs[i]->adamFlag & ADAM_ENEMYAIR) == ADAM_ENEMYAIR;
 
 			// Enemy Shooting
-			neatArray[i][17] = (bs[i]->adamFlag & ADAM_ENEMYFIRE);
-			if(neatArray[i][16] > 1)
-			{
-				G_Printf("The flag: %d and the check: %d \n",bs[i]->adamFlag,neatArray[i][16]);
-			}
+			neatArray[i][17] = (bs[i]->adamFlag & ADAM_ENEMYFIRE) == ADAM_ENEMYFIRE;
 			// Enemy Weapon
 			neatArray[i][18] = bs[i]->enemyWeapon/9;
 			
@@ -1995,10 +1989,10 @@ void BotStateToNEAT(float neatArray[MAX_CLIENTS][26], bot_state_t **bs)
 			// Enemy Distance
 			neatArray[i][19] = tempSquareDist;
 			// Enemy Dir (already normalized)
-			neatArray[i][20] = bs[i]->enemyDir[0];
-			neatArray[i][21] = bs[i]->enemyDir[1];
-			neatArray[i][22] = bs[i]->enemyDir[2];
-			// Enemy Velocity
+			neatArray[i][20] = (bs[i]->enemyDir[0]+1)/2;
+			neatArray[i][21] = (bs[i]->enemyDir[1]+1)/2;
+			neatArray[i][22] = (bs[i]->enemyDir[2]+1)/2;
+			// Enemy Velocity (consider to remove initially, since we are using hitscan)
 			neatArray[i][23] = (bs[i]->enemyvelocity[0]+320)/320;
 			neatArray[i][24] = (bs[i]->enemyvelocity[1]+320)/320;
 			neatArray[i][25] = (bs[i]->enemyvelocity[2]+270)/270;
@@ -2049,7 +2043,6 @@ int GetAmmoWeapon(int weaponNumber, bot_state_t* bs)
 int AdamAttack(bot_state_t* bs)
 {
 	weaponinfo_t weaponInfo;
-	int ammoval = 0;
 	trap_BotGetWeaponInfo(bs->ws,bs->weaponnum,&weaponInfo);
 
 	if(weaponInfo.flags & WFL_FIRERELEASED)
