@@ -3860,7 +3860,7 @@ void trap_Adam_Com_Write_Neat(int file, float neatArray[MAX_CLIENTS][ADAM_NN_INP
 	
 	if(counter >0)
 	{
-		printf("WriteArray: %s\n",writeArray);
+		//printf("WriteArray: %s\n",writeArray);
         returnVal=write(file,writeArray, strlen(writeArray));
 		if(returnVal < 0)
 			printf("WRITE ERROR");

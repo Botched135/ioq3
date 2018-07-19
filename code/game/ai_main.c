@@ -2238,7 +2238,6 @@ void AdamBotChatSetup(int client, bot_state_t *bs)
 			{ /*ignore*/ }
 	}
 }
-
 int GetAdaptiveAgents(bot_state_t** bs)
 {
 	int amount,i;

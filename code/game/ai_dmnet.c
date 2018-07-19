@@ -2673,7 +2673,7 @@ int Adam_Seek(bot_state_t* bs, float* neatData)
 	movement[0] = 1.0f;
 	movement[1] = -1.0f;
 	movement[2] = 0.0f;
-	if(bs->lastTime +5 > FloatTime())
+/*	if(bs->lastTime +5 > FloatTime())
 	{
 		trap_BotMoveInDirection(bs->ms,bs->lastMovement,400, MOVE_WALK);
 	}
@@ -2681,7 +2681,7 @@ int Adam_Seek(bot_state_t* bs, float* neatData)
 	{
 		BotMoveInRandDir(bs,bs->lastMovement);
 		bs->lastTime = FloatTime();
-	}
+	}*/
 	return qtrue;
 
 }
@@ -2693,7 +2693,8 @@ void AdamEnter_Fight(bot_state_t* bs)
 int Adam_Fight(bot_state_t* bs, float* neatData)
 {
 	aas_entityinfo_t entinfo;
-	vec3_t target,moveDirection,viewAngle;
+	vec3_t target,moveDirection,viewAngle,forward,right,aimDirection;
+	bsp_trace_t trace;
 	int areanum,i, clientNumber, moveType;
 	if (BotIsDead(bs)) 
 	{
@@ -2704,7 +2705,7 @@ int Adam_Fight(bot_state_t* bs, float* neatData)
 		AdamEnter_Seek(bs);
 		return qfalse;
 	}
-
+	
 	BotEntityInfo(bs->enemy, &entinfo);
 	if (EntityIsDead(&entinfo)) {
 		AdamEnter_Seek(bs);
@@ -2775,7 +2776,7 @@ int Adam_Fight(bot_state_t* bs, float* neatData)
 	moveDirection[1]= (neatData[6]*2)-1;
 	moveDirection[2]= 0.0f;
 	VectorNormalize(moveDirection);
-	
+	/*
 	if(bs->lastTime +5 < FloatTime())
 	{
 		trap_BotMoveInDirection(bs->ms,bs->lastMovement,400, MOVE_WALK);
@@ -2785,13 +2786,15 @@ int Adam_Fight(bot_state_t* bs, float* neatData)
 		BotMoveInRandDir(bs,bs->lastMovement);
 		bs->lastTime = FloatTime();
 	}
-		
+		*/
 	viewAngle[0] = neatData[7];
 	viewAngle[1] = neatData[8];
 	viewAngle[2] = neatData[9];
 
 	// Look for better enemy, for next frame 
+	AdamOnTarget(bs);
 	AdamFindEnemy(bs,bs->enemy);
+	Add_Ammo(&g_entities[bs->entitynum],WEAPONINDEX_MACHINEGUN,100);
 
 	return qtrue;
 }

@@ -5710,7 +5710,7 @@ void AdamUpdateEnemy(bot_state_t *bs)
 	float squareDist;
 	aas_entityinfo_t entinfo;
 	playerState_t ps;	
-	vec3_t dir;
+	vec3_t dir,enemyVelocity;
 
 	currentEnemy = bs->enemy;
 	
@@ -5725,6 +5725,11 @@ void AdamUpdateEnemy(bot_state_t *bs)
 	bs->enemysuicide = qfalse;
 	bs->enemydeath_time = 0;
 	bs->enemyvisible_time = FloatTime();
+	VectorSubtract(entinfo.origin, entinfo.lastvisorigin, enemyVelocity);
+	VectorScale(enemyVelocity, 1 / entinfo.update_time, enemyVelocity);
+	// No need to delay it, as the NN will use last frames data anyway
+	VectorCopy(enemyVelocity, bs->enemyvelocity);
+	VectorCopy(entinfo.origin, bs->enemyorigin);
 
 	//ADAM Specific
 	if (BotAI_GetClientState(entinfo.number, &ps))
@@ -5759,6 +5764,32 @@ void AdamUpdateEnemy(bot_state_t *bs)
 	VectorCopy(dir,bs->enemyDir);
 	VectorNormalize(bs->enemyDir);
 	bs->squaredEnemyDis = squareDist;
+}
+// Only called when there is a bot in the front rangefinder.
+qboolean AdamOnTarget(bot_state_t* bs)
+{
+	vec3_t forward, aimDirection, endPoint;
+	bsp_trace_t trace;
+
+	// Get the two vectors: the view direction and the direction of the enemy(and if it can hit it)
+	AngleVectors(bs->viewangles,forward,NULL,NULL);
+	VectorScale(forward,1000.0f,endPoint);
+	VectorAdd(endPoint,bs->eye,endPoint);
+	
+	BotAI_Trace(&trace,bs->eye,NULL,NULL,endPoint,bs->entitynum,MASK_SHOT);
+
+	//Need to check if it hits another enemy 
+	if (trace.ent == bs->enemy) 
+	{
+		trap_EA_Attack(bs->client);
+		return qtrue;
+	}
+	return qfalse;
+}
+
+int AdamEnemyRadar()
+{
+	
 }
 
 int BotMoveInRandDir(bot_state_t* bs, vec3_t dirResult)

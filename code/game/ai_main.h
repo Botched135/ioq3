@@ -311,6 +311,7 @@ int GetAdaptiveAgents(bot_state_t** bs);
 int AdamAttack(bot_state_t* bs);
 int AdamSelectWeapon(bot_state_t* bs, float weaponIndex);
 int AdamJump(bot_state_t* bs, int airState);
+
 int GetAmmoWeapon(int weaponNumber, bot_state_t* bs);
 
 // ADAM distances
