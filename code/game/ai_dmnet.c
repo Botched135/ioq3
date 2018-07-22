@@ -2687,7 +2687,7 @@ int Adam_Fight(bot_state_t* bs, float* neatData)
 	vec3_t target,moveDirection,viewAngles,viewAngle,forward,right,backward,left,aimDirection;
 	bsp_trace_t trace;
 	int areanum,i, clientNumber, moveType, enemy, fov;
-
+	
 	enemy = bs->enemy;
 	if (BotIsDead(bs)) 
 	{
@@ -2735,7 +2735,7 @@ int Adam_Fight(bot_state_t* bs, float* neatData)
 		}
 		
 	}
-	
+	fov = 90.0f;
 	clientNumber = bs->client;
 	// Update the enemy
 	BotUpdateBattleInventory(bs,enemy);
@@ -2785,6 +2785,7 @@ int Adam_Fight(bot_state_t* bs, float* neatData)
 	bs->enemyRadars[2] = AdamEnemyRadar(bs,backward,fov);
 	bs->enemyRadars[3] = AdamEnemyRadar(bs,left,fov);
 	
+	G_Printf("Enemy radar values: [%f,%f,%f,%f]\n",	bs->enemyRadars[0],	bs->enemyRadars[1],	bs->enemyRadars[2],	bs->enemyRadars[3]);
 	
 	AdamOnTarget(bs,forward);
 
