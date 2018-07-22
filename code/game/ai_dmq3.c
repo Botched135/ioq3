@@ -5766,17 +5766,18 @@ void AdamUpdateEnemy(bot_state_t *bs)
 	bs->squaredEnemyDis = squareDist;
 }
 // Only called when there is a bot in the front rangefinder.
-qboolean AdamOnTarget(bot_state_t* bs)
+qboolean AdamOnTarget(bot_state_t* bs, vec3_t forward)
 {
-	vec3_t forward, aimDirection, endPoint;
+	vec3_t aimDirection, endPoint,eye;
 	bsp_trace_t trace;
 
+	VectorCopy(bs->eye,eye);
+
 	// Get the two vectors: the view direction and the direction of the enemy(and if it can hit it)
-	AngleVectors(bs->viewangles,forward,NULL,NULL);
 	VectorScale(forward,1000.0f,endPoint);
-	VectorAdd(endPoint,bs->eye,endPoint);
+	VectorAdd(endPoint,eye,endPoint);
 	
-	BotAI_Trace(&trace,bs->eye,NULL,NULL,endPoint,bs->entitynum,MASK_SHOT);
+	BotAI_Trace(&trace,eye,NULL,NULL,endPoint,bs->entitynum,MASK_SHOT);
 
 	//Need to check if it hits another enemy 
 	if (trace.ent == bs->enemy) 
@@ -5787,8 +5788,45 @@ qboolean AdamOnTarget(bot_state_t* bs)
 	return qfalse;
 }
 
-int AdamEnemyRadar()
+float AdamEnemyRadar(bot_state_t* bs, vec3_t direction, float fov)
 {
+	int i, clientNum, entityNum, enemyVisible;
+	float distSum;
+	vec3_t origin,eye,angles,dist;
+	aas_entityinfo_t entinfo;
+	// Storing botstates in local variables, 
+	clientNum = bs->client;
+	entityNum = bs->entitynum;
+	VectorCopy(bs->origin,origin);
+	VectorCopy(bs->eye,eye);
+	distSum = 0.0f;
+
+	// Find the view angle of this specfic Radar
+	vectoangles(direction, angles);
+
+	// Iterate through the clients
+	for (i = 0; i < level.maxclients; i++) 
+	{
+		if(i == clientNum) continue;
+
+		if (g_entities[i].flags & FL_NOTARGET) continue;
+		
+		BotEntityInfo(i, &entinfo);
+		// is the bot valid
+		if (!entinfo.valid) continue;
+
+		//if the enemy is dead or the enemy is the bot self
+		if (EntityIsDead(&entinfo) || entinfo.number == entityNum) continue;
+
+		if(BotEntityVisible(entityNum, eye, angles, fov, i))
+		{
+			VectorSubtract(entinfo.origin,origin,dist);	
+			distSum += (ADAM_SIGHT_DISTANCE-VectorLengthSquared(dist));
+		}
+	}
+	// Calculate the sum of whatever we are going to return
+
+	return distSum;
 	
 }
 

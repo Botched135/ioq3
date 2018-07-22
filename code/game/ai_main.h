@@ -272,14 +272,14 @@ typedef struct bot_state_s
 	bot_waypoint_t *curpatrolpoint;					//current patrol point the bot is going for
 	int patrolflags;								//patrol flags
 
-	//FOR ADAPTIVE AGENT
+	//FOR ADAM AGENT
 	int adamFlag;
 	int enemyWeapon;
 	int (*adamNode)(struct bot_state_s* bs,float* neatData);
 
 	int squaredEnemyDis;
 	vec3_t enemyDir;
-	vec3_t lastMovement;
+	float enemyRadars[4];								// from view direction and in clockwise direction
 	float lastTime;
 	
 } bot_state_t;
@@ -317,6 +317,9 @@ int GetAmmoWeapon(int weaponNumber, bot_state_t* bs);
 // ADAM distances
 #define ADAM_MAX_DISTANCE 	1220000000
 #define ADAM_MIN_DISTANCE	1140000000
+
+// ADAM SIGHT
+#define ADAM_SIGHT_DISTANCE 140000
 // ADAM flag
 #define ADAM_ADAPTIVE		0x00000001
 #define ADAM_RESET 			0x00000002

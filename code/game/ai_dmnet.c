@@ -2673,15 +2673,6 @@ int Adam_Seek(bot_state_t* bs, float* neatData)
 	movement[0] = 1.0f;
 	movement[1] = -1.0f;
 	movement[2] = 0.0f;
-/*	if(bs->lastTime +5 > FloatTime())
-	{
-		trap_BotMoveInDirection(bs->ms,bs->lastMovement,400, MOVE_WALK);
-	}
-	else
-	{
-		BotMoveInRandDir(bs,bs->lastMovement);
-		bs->lastTime = FloatTime();
-	}*/
 	return qtrue;
 
 }
@@ -2693,26 +2684,29 @@ void AdamEnter_Fight(bot_state_t* bs)
 int Adam_Fight(bot_state_t* bs, float* neatData)
 {
 	aas_entityinfo_t entinfo;
-	vec3_t target,moveDirection,viewAngle,forward,right,aimDirection;
+	vec3_t target,moveDirection,viewAngles,viewAngle,forward,right,backward,left,aimDirection;
 	bsp_trace_t trace;
-	int areanum,i, clientNumber, moveType;
+	int areanum,i, clientNumber, moveType, enemy, fov;
+
+	enemy = bs->enemy;
 	if (BotIsDead(bs)) 
 	{
 		AdamEnter_Respawn(bs);
 		return qfalse;
 	}
-	if (bs->enemy < 0) {
+	if (enemy < 0) {
 		AdamEnter_Seek(bs);
 		return qfalse;
 	}
 	
-	BotEntityInfo(bs->enemy, &entinfo);
+	BotEntityInfo(enemy, &entinfo);
 	if (EntityIsDead(&entinfo)) {
 		AdamEnter_Seek(bs);
 		return qfalse;
 	}
+	VectorCopy(bs->viewangles,viewAngles);
 	//update last time player was seen
-	if (BotEntityVisible(bs->entitynum, bs->eye, bs->viewangles, 360, bs->enemy)) 
+	if (BotEntityVisible(bs->entitynum, bs->eye, viewAngles, 360, enemy)) 
 	{
 		bs->enemyvisible_time = FloatTime();
 		VectorCopy(entinfo.origin, target);
@@ -2744,7 +2738,7 @@ int Adam_Fight(bot_state_t* bs, float* neatData)
 	
 	clientNumber = bs->client;
 	// Update the enemy
-	BotUpdateBattleInventory(bs,bs->enemy);
+	BotUpdateBattleInventory(bs,enemy);
 	AdamUpdateEnemy(bs);
 	BotSetupForMovement(bs);
 	moveType = MOVE_WALK;
@@ -2776,24 +2770,27 @@ int Adam_Fight(bot_state_t* bs, float* neatData)
 	moveDirection[1]= (neatData[6]*2)-1;
 	moveDirection[2]= 0.0f;
 	VectorNormalize(moveDirection);
-	/*
-	if(bs->lastTime +5 < FloatTime())
-	{
-		trap_BotMoveInDirection(bs->ms,bs->lastMovement,400, MOVE_WALK);
-	}
-	else
-	{
-		BotMoveInRandDir(bs,bs->lastMovement);
-		bs->lastTime = FloatTime();
-	}
-		*/
+
 	viewAngle[0] = neatData[7];
 	viewAngle[1] = neatData[8];
 	viewAngle[2] = neatData[9];
+	
+	AngleVectors(viewAngles,forward,right,NULL);
+	VectorScale(forward,-1.0f,backward);
+	VectorScale(right,-1.0f,left);
+	
+	// Enemy radars 
+	bs->enemyRadars[0] = AdamEnemyRadar(bs,forward,fov);
+	bs->enemyRadars[1] = AdamEnemyRadar(bs,right,fov);
+	bs->enemyRadars[2] = AdamEnemyRadar(bs,backward,fov);
+	bs->enemyRadars[3] = AdamEnemyRadar(bs,left,fov);
+	
+	
+	AdamOnTarget(bs,forward);
+
 
 	// Look for better enemy, for next frame 
-	AdamOnTarget(bs);
-	AdamFindEnemy(bs,bs->enemy);
+	AdamFindEnemy(bs,enemy);
 	Add_Ammo(&g_entities[bs->entitynum],WEAPONINDEX_MACHINEGUN,100);
 
 	return qtrue;

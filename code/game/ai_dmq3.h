@@ -182,7 +182,8 @@ void AdamBotIntermission(bot_state_t *bs);
 void AdamBotMapScripts(bot_state_t *bs);
 int  AdamFindEnemy(bot_state_t *bs, int currentEnemy);
 void AdamUpdateEnemy(bot_state_t *bs);
-qboolean AdamOnTarget(bot_state_t* bs);
+qboolean AdamOnTarget(bot_state_t* bs, vec3_t forward);
+float AdamEnemyRadar(bot_state_t* bs, vec3_t direction, float fov);
 int BotMoveInRandDir(bot_state_t* bs, vec3_t dirResult);
 
 //ctf flags

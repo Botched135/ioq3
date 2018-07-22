@@ -1447,10 +1447,7 @@ int BotAIStartFrame(int time) {
 	}
 
 	if(pausing[0] == 'p')
-	{
 		trap_Cvar_Set("bot_pause","1");
-		G_Printf("Should be now!\n");
-	}
 	else
 		trap_Cvar_Set("bot_pause","0");
 	
@@ -1921,11 +1918,12 @@ int BotAdamAgent(int clientNum,float thinktime, float *neatInput)
 // reference to the bots and their neural networks
 void BotStateToNEAT(float neatArray[MAX_CLIENTS][ADAM_NN_INPUT], bot_state_t **bs)
 {
-	int i,tempSquareDist;
+	int i,j,tempSquareDist,totalRadarVal;
 	for(i = 0; i < MAX_CLIENTS;i++)
 	{
 		if(bs[i]->adamFlag & ADAM_ADAPTIVE)
 		{
+			totalRadarVal = 0;
 			//Initialization and NN connection
 			neatArray[i][0] = 2;
 			neatArray[i][1] = bs[i]->inuse;
@@ -1967,9 +1965,17 @@ void BotStateToNEAT(float neatArray[MAX_CLIENTS][ADAM_NN_INPUT], bot_state_t **b
 			ENEMY 
 			========================================================
 			*/
+
+			// Enemy Radar
+			for(j =0;j<4;j++)
+				totalRadarVal+= bs[i]->enemyRadars[j];
+			/*
+			for(j = 0;j<4;j++)
+				neatArray[i][j+15] = bs[i]->enemyRadars[i]/totalRadarVal;
+				*/
 			// Enemy Crouching
 			neatArray[i][15] = (bs[i]->adamFlag & ADAM_ENEMYCROUCH) == ADAM_ENEMYCROUCH;
-
+			
 			// Enemy in Air
 			neatArray[i][16] = (bs[i]->adamFlag & ADAM_ENEMYAIR) == ADAM_ENEMYAIR;
 
