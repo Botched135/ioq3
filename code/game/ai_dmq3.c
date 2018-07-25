@@ -5768,7 +5768,7 @@ void AdamUpdateEnemy(bot_state_t *bs)
 // Only called when there is a bot in the front rangefinder.
 qboolean AdamOnTarget(bot_state_t* bs, vec3_t forward)
 {
-	vec3_t aimDirection, endPoint,eye;
+	vec3_t endPoint,eye;
 	bsp_trace_t trace;
 
 	VectorCopy(bs->eye,eye);
@@ -5790,8 +5790,8 @@ qboolean AdamOnTarget(bot_state_t* bs, vec3_t forward)
 
 float AdamEnemyRadar(bot_state_t* bs, vec3_t direction, float fov)
 {
-	int i, clientNum, entityNum, enemyVisible;
-	float distSum;
+	int i, clientNum, entityNum;
+	float distSum, enemyRange;
 	vec3_t origin,eye,angles,dist;
 	aas_entityinfo_t entinfo;
 	// Storing botstates in local variables, 
@@ -5821,13 +5821,14 @@ float AdamEnemyRadar(bot_state_t* bs, vec3_t direction, float fov)
 		if(BotEntityVisible(entityNum, eye, angles, fov, i))
 		{
 			VectorSubtract(entinfo.origin,origin,dist);	
-			distSum += (ADAM_SIGHT_DISTANCE-VectorLengthSquared(dist));
+			enemyRange = VectorLength(dist);
+			
+			if(enemyRange < ADAM_SIGHT_DISTANCE)
+				distSum += (ADAM_SIGHT_DISTANCE*ADAM_DIST_SCALAR)/enemyRange;
 		}
 	}
 	// Calculate the sum of whatever we are going to return
-
 	return distSum;
-	
 }
 
 int BotMoveInRandDir(bot_state_t* bs, vec3_t dirResult)

@@ -3941,3 +3941,12 @@ void Adam_Com_SetupPipe(void)
 	}
 
 }
+#include <math.h>
+float trap_power(float x, float y)
+{
+	double please;
+	//printf("This is the double x: %f, and y: %f \n",x,y);
+	please = pow(2.0f,2.0f);
+	//printf("This is the result: %f \n",please);
+	return 1;
+}

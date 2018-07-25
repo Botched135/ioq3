@@ -1439,6 +1439,7 @@ void	trap_Adam_Com_Array_To_Action	(float outputArray[MAX_CLIENTS][ADAM_NN_OUTPU
 
 void	trap_Adam_Com_Read_Pause		(int file, char* input);
 void 	Adam_Com_SetupPipe				(void);
+float	trap_power						(float x, float y);
 
 
 

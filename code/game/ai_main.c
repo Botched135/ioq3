@@ -1918,12 +1918,11 @@ int BotAdamAgent(int clientNum,float thinktime, float *neatInput)
 // reference to the bots and their neural networks
 void BotStateToNEAT(float neatArray[MAX_CLIENTS][ADAM_NN_INPUT], bot_state_t **bs)
 {
-	int i,j,tempSquareDist,totalRadarVal;
+	int i,j,tempSquareDist;
 	for(i = 0; i < MAX_CLIENTS;i++)
 	{
 		if(bs[i]->adamFlag & ADAM_ADAPTIVE)
 		{
-			totalRadarVal = 0;
 			//Initialization and NN connection
 			neatArray[i][0] = 2;
 			neatArray[i][1] = bs[i]->inuse;
@@ -1967,12 +1966,12 @@ void BotStateToNEAT(float neatArray[MAX_CLIENTS][ADAM_NN_INPUT], bot_state_t **b
 			*/
 
 			// Enemy Radar
-			for(j =0;j<4;j++)
-				totalRadarVal+= bs[i]->enemyRadars[j];
+
+			for(j = 0;j<4;j++) neatArray[i][j+15] = bs[i]->enemyRadars[j];
+			
+			// G_Printf("Last call for enemyRadar:[%f,%f,%f,%f] \n",neatArray[i][15],neatArray[i][16],neatArray[i][17],neatArray[i][18]);
+			
 			/*
-			for(j = 0;j<4;j++)
-				neatArray[i][j+15] = bs[i]->enemyRadars[i]/totalRadarVal;
-				*/
 			// Enemy Crouching
 			neatArray[i][15] = (bs[i]->adamFlag & ADAM_ENEMYCROUCH) == ADAM_ENEMYCROUCH;
 			
@@ -1983,7 +1982,7 @@ void BotStateToNEAT(float neatArray[MAX_CLIENTS][ADAM_NN_INPUT], bot_state_t **b
 			neatArray[i][17] = (bs[i]->adamFlag & ADAM_ENEMYFIRE) == ADAM_ENEMYFIRE;
 			// Enemy Weapon
 			neatArray[i][18] = bs[i]->enemyWeapon/9;
-			
+			*/
 			tempSquareDist = bs[i]->squaredEnemyDis;
 			if(tempSquareDist > ADAM_MAX_DISTANCE)
 				tempSquareDist = 1;

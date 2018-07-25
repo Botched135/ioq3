@@ -232,3 +232,4 @@ equ trap_Adam_Com_Write_Neat            -606
 equ	trap_Adam_Com_Write_Fitness         -607
 equ trap_Adam_Com_Write_Ready           -608
 equ trap_Adam_Com_Array_To_Action       -609
+equ trap_power                          -610

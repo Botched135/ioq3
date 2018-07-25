@@ -835,4 +835,8 @@ void trap_Adam_Com_Array_To_Action(float outputArray[MAX_CLIENTS][ADAM_NN_OUTPUT
 {
 	syscall(ADAM_COM_ARRAY_TO_ACTION,outputArray,data);
 }
+float trap_power(float x, float y)
+{
+	return syscall(TRAP_POWER,x,y);
+}
 

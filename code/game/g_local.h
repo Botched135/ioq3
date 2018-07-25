@@ -961,4 +961,5 @@ void	trap_Adam_Com_Write_Neat(int file, float neatArray[MAX_CLIENTS][ADAM_NN_INP
 void	trap_Adam_Com_Write_Fitness(int file, float fitnessArray[MAX_CLIENTS][ADAM_NN_FITNESS], int adaptiveAgents);
 void	trap_Adam_Com_Write_Ready(int file);
 void	trap_Adam_Com_Array_To_Action(float outputArray[MAX_CLIENTS][ADAM_NN_OUTPUT], char* data);
+float	trap_power(float x, float y);
 

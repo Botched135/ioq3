@@ -1248,7 +1248,7 @@ void BotEmptyGoalStack(int goalstate)
 int BotGetTopGoal(int goalstate, bot_goal_t *goal)
 {
 	bot_goalstate_t *gs;
-
+	
 	gs = BotGoalStateFromHandle(goalstate);
 	if (!gs) return qfalse;
 	if (!gs->goalstacktop) return qfalse;

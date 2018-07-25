@@ -281,6 +281,7 @@ BotGetItemLongTermGoal
 */
 int BotGetItemLongTermGoal(bot_state_t *bs, int tfl, bot_goal_t *goal) {
 	//if the bot has no goal
+
 	if (!trap_BotGetTopGoal(bs->gs, goal)) {
 		//BotAI_Print(PRT_MESSAGE, "no ltg on stack\n");
 		bs->ltg_time = 0;
@@ -293,6 +294,7 @@ int BotGetItemLongTermGoal(bot_state_t *bs, int tfl, bot_goal_t *goal) {
 	//if it is time to find a new long term goal
 	if (bs->ltg_time < FloatTime()) {
 		//pop the current goal from the stack
+			G_Printf("#JustRoamAround\n");
 		trap_BotPopGoal(bs->gs);
 		//BotAI_Print(PRT_MESSAGE, "%s: choosing new ltg\n", ClientName(bs->client, netname, sizeof(netname)));
 		//choose a new goal
@@ -1688,7 +1690,7 @@ int AINode_Seek_NBG(bot_state_t *bs) {
 		return qfalse;
 	}
 	//
-	//G_Printf("AINode_Seek_NBG\n");
+	
 	bs->tfl = TFL_DEFAULT;
 	if (bot_grapple.integer) bs->tfl |= TFL_GRAPPLEHOOK;
 	//if in lava or slime the bot should be able to get out
@@ -1810,14 +1812,16 @@ int AINode_Seek_LTG(bot_state_t *bs)
 	bot_moveresult_t moveresult;
 	int range;
 	char buf[128];
-	bot_goal_t tmpgoal;
+	bot_goal_t tmpgoal,testGoal;
 	
+	//trap_BotGetTopGoal(bs->gs,&testGoal);
 	if (BotIsObserver(bs)) {
 		AIEnter_Observer(bs, "seek ltg: observer");
 		return qfalse;
 	}
 	//if in the intermission
 	if (BotIntermission(bs)) {
+		G_Printf("Is it in intermission? \n");
 		AIEnter_Intermission(bs, "seek ltg: intermission");
 		return qfalse;
 	}
@@ -1867,10 +1871,13 @@ int AINode_Seek_LTG(bot_state_t *bs)
 			return qfalse;
 		}
 	}
-	//
-	BotTeamGoals(bs, qfalse);
+
+	BotTeamGoals(bs, qfalse); // This does not do anything for our playmode
 	//get the current long term goal
-	if (!BotLongTermGoal(bs, bs->tfl, qfalse, &goal)) {
+	G_Printf("Just before long term goal check \n");
+	if (!BotLongTermGoal(bs, bs->tfl, qfalse, &goal)) 
+	{
+		G_Printf("What can I say except, Hello there? \n");
 		return qtrue;
 	}
 	//check for nearby goals periodicly
@@ -1901,6 +1908,7 @@ int AINode_Seek_LTG(bot_state_t *bs)
 #endif
 		//
 		if (BotNearbyGoal(bs, bs->tfl, &goal, range)) {
+			G_Printf("Goal is nearby! \n");
 			trap_BotResetLastAvoidReach(bs->ms);
 			//get the goal at the top of the stack
 			trap_BotGetTopGoal(bs->gs, &tmpgoal);
@@ -1937,6 +1945,7 @@ int AINode_Seek_LTG(bot_state_t *bs)
 	//if waiting for something
 	else if (moveresult.flags & MOVERESULT_WAITING) {
 		if (random() < bs->thinktime * 0.8) {
+			G_Printf("Roam Goal 1 \n");
 			BotRoamGoal(bs, target);
 			VectorSubtract(target, bs->origin, dir);
 			vectoangles(dir, bs->ideal_viewangles);
@@ -1953,6 +1962,7 @@ int AINode_Seek_LTG(bot_state_t *bs)
 			vectoangles(moveresult.movedir, bs->ideal_viewangles);
 		}
 		else if (random() < bs->thinktime * 0.8) {
+			G_Printf("Roam Goal 2 \n");
 			BotRoamGoal(bs, target);
 			VectorSubtract(target, bs->origin, dir);
 			vectoangles(dir, bs->ideal_viewangles);
@@ -2628,14 +2638,17 @@ int AINode_Battle_NBG(bot_state_t *bs) {
 	return qtrue;
 }
 
-
 void AdamEnter_Seek(bot_state_t* bs)
 {
 	bs->adamNode = Adam_Seek;	
 }
 int Adam_Seek(bot_state_t* bs, float* neatData)
 {
-	vec3_t movement;
+	bot_goal_t goal;
+	vec3_t target, dir;
+	bot_moveresult_t moveResult;
+	int range;
+
 	if (BotIsDead(bs)) 
 	{
 		AdamEnter_Respawn(bs);
@@ -2661,20 +2674,163 @@ int Adam_Seek(bot_state_t* bs, float* neatData)
 		AdamEnter_Fight(bs);
 		return qfalse;
 	}
-	movement[0] = 1.0f;
-	movement[1] = -1.0f;
-	movement[2] = 0.0f;
-	trap_BotMoveInDirection(bs->ms,movement,400,MOVE_WALK);
-	//
-	/*
-	START MOVEMENT SETUP HERE.
-	*/
+	if(!AdamGetLongTermItemGoal(bs,bs->tfl,&goal))
+		return qtrue;
+	
+	if(bs->check_time < FloatTime())
+	{
+		bs->check_time = FloatTime()+0.5;
+		BotWantsToCamp(bs);
+		range = 150;
+		if(BotNearbyGoal(bs,bs->tfl,&goal,range))
+		{
+			trap_BotResetLastAvoidReach(bs->ms);
+			bs->nbg_time = FloatTime()+4+range*0.01;
+			AdamEnter_NearbySeek(bs);
+			return qfalse;
+		}
+	}
+
+	if(BotAIPredictObstacles(bs,&goal))
+		return qfalse;
 	BotSetupForMovement(bs);
-	movement[0] = 1.0f;
-	movement[1] = -1.0f;
-	movement[2] = 0.0f;
+
+	trap_BotMoveToGoal(&moveResult,bs->ms,&goal,bs->tfl);
+
+	//if movement failed)
+	if(moveResult.failure)
+	{
+		//avoid getting stuck
+		trap_BotResetAvoidReach(bs->ms);
+		bs->ltg_time = 0;
+	}
+
+	BotAIBlocked(bs,&moveResult,qtrue);
+
+	BotClearPath(bs,&moveResult);
+
+	//if the view angles are used for movement
+	if(moveResult.flags & (MOVERESULT_MOVEMENTVIEWSET|MOVERESULT_MOVEMENTVIEW|MOVERESULT_SWIMVIEW))
+		VectorCopy(moveResult.ideal_viewangles, bs->ideal_viewangles);
+	else if(moveResult.flags & MOVERESULT_WAITING)
+	{
+		if(random() < bs->thinktime*0.8)
+		{
+			BotRoamGoal(bs,target);
+			VectorSubtract(target,bs->origin,dir);
+			vectoangles(dir,bs->ideal_viewangles);
+			bs->ideal_viewangles[2]*=0.5;
+	
+		}
+	}
+	else if(!(bs->flags & BFL_IDEALVIEWSET))
+	{
+		if(trap_BotMovementViewTarget(bs->ms,&goal,bs->tfl,300,target))
+		{
+			VectorSubtract(target,bs->origin,dir);
+			vectoangles(dir,bs->ideal_viewangles);
+		}
+		else if(VectorLengthSquared(moveResult.movedir))
+			vectoangles(moveResult.movedir,bs->ideal_viewangles);
+		else if(random()< bs->thinktime*0.8)
+		{
+			BotRoamGoal(bs,target);
+			VectorSubtract(target,bs->origin,dir);
+			vectoangles(dir,bs->ideal_viewangles);
+			bs->ideal_viewangles[2]*=0.5;
+		}
+		bs->ideal_viewangles[2]*=0.5;
+	}
+
 	return qtrue;
 
+}
+void AdamEnter_NearbySeek(bot_state_t* bs)
+{
+	bs->adamNode = Adam_NearbySeek;
+}
+
+int Adam_NearbySeek(bot_state_t* bs, float* neatData)
+{
+	bot_goal_t goal;
+	vec3_t target, dir;
+	bot_moveresult_t moveResult;
+	int goalState;
+	goalState = bs->gs;
+	if (BotIsDead(bs)) 
+	{
+		AdamEnter_Respawn(bs);
+		return qfalse;
+	}
+	
+	bs->tfl = TFL_DEFAULT;
+	if (bot_grapple.integer) bs->tfl |= TFL_GRAPPLEHOOK;
+	//if in lava or slime the bot should be able to get out
+	if (BotInLavaOrSlime(bs)) bs->tfl |= TFL_LAVA|TFL_SLIME;
+	//
+	if (BotCanAndWantsToRocketJump(bs)) 
+		bs->tfl |= TFL_ROCKETJUMP;
+
+	//map specific code
+	AdamBotMapScripts(bs);
+	//no enemy
+	bs->enemy = -1;
+
+	if(!trap_BotGetTopGoal(bs->gs,&goal) || BotReachedGoal(bs,&goal)) bs->nbg_time = 0;
+
+	if(bs->nbg_time < FloatTime())
+	{
+		trap_BotPopGoal(goalState);
+		bs->check_time = FloatTime()+0.05;
+		AdamEnter_Seek(bs);
+		return qfalse;
+	}
+
+	if(BotAIPredictObstacles(bs,&goal))
+		return qfalse;
+	
+	BotSetupForMovement(bs);
+
+	trap_BotMoveToGoal(&moveResult,bs->ms,&goal, bs->tfl);
+
+	if(moveResult.failure)
+	{
+		trap_BotResetAvoidReach(bs->ms);
+		bs->nbg_time = 0;
+	}
+
+	BotAIBlocked(bs,&moveResult,qtrue);
+
+	BotClearPath(bs,&moveResult);
+
+	if(moveResult.flags & (MOVERESULT_MOVEMENTVIEWSET|MOVERESULT_MOVEMENTVIEW|MOVERESULT_SWIMVIEW))
+		VectorCopy(moveResult.ideal_viewangles,bs->ideal_viewangles);
+	else if(moveResult.flags & MOVERESULT_WAITING)
+	{
+		if(random()<bs->thinktime *0.8)
+		{
+			BotRoamGoal(bs,target);
+			VectorSubtract(target,bs->origin,dir);
+			vectoangles(dir,bs->ideal_viewangles);
+			bs->ideal_viewangles[2] *=0.5;
+		}
+	}
+	else if(!(bs->flags & BFL_IDEALVIEWSET))
+	{
+		if(!trap_BotGetSecondGoal(goalState,&goal)) trap_BotGetTopGoal(goalState,&goal);
+		if(trap_BotMovementViewTarget(bs->ms,&goal,bs->tfl,300,target))
+		{
+			VectorSubtract(target,bs->origin,dir);
+			vectoangles(dir,bs->ideal_viewangles);
+			bs->ideal_viewangles[2] *=0.5;
+		}
+		else vectoangles(moveResult.movedir,bs->ideal_viewangles);
+		bs->ideal_viewangles[2] *=0.5;
+	}
+	if(AdamFindEnemy(bs,-1))
+		AdamEnter_Fight(bs);
+
+	return qtrue;
 }
 void AdamEnter_Fight(bot_state_t* bs)
 {
@@ -2685,7 +2841,6 @@ int Adam_Fight(bot_state_t* bs, float* neatData)
 {
 	aas_entityinfo_t entinfo;
 	vec3_t target,moveDirection,viewAngles,viewAngle,forward,right,backward,left,aimDirection;
-	bsp_trace_t trace;
 	int areanum,i, clientNumber, moveType, enemy, fov;
 	
 	enemy = bs->enemy;
@@ -2836,4 +2991,29 @@ int Adam_Respawn(bot_state_t* bs,float* neatData)
 	}
 	return qtrue;
 
+}
+
+int AdamGetLongTermItemGoal(bot_state_t* bs, int travelFlag, bot_goal_t* goal)
+{
+	int goalState;
+	goalState = bs->gs;
+	// If there is no goal or goal has been reached
+	if(!trap_BotGetTopGoal(goalState,goal) || BotReachedGoal(bs,goal))
+	{
+		bs->ltg_time = 0;
+	}
+	// Time to find new goal
+	if(bs->ltg_time < FloatTime())
+	{
+		trap_BotPopGoal(goalState);
+		if(trap_BotChooseLTGItem(goalState,bs->origin,bs->inventory,travelFlag))
+			bs->ltg_time = FloatTime()+20;
+		else
+		{
+			trap_BotResetAvoidGoals(goalState);
+			trap_BotResetAvoidReach(bs->ms);
+		}
+		return trap_BotGetTopGoal(goalState,goal);
+	}
+	return qtrue;
 }

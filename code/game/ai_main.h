@@ -318,8 +318,9 @@ int GetAmmoWeapon(int weaponNumber, bot_state_t* bs);
 #define ADAM_MAX_DISTANCE 	1220000000
 #define ADAM_MIN_DISTANCE	1140000000
 
-// ADAM SIGHT
-#define ADAM_SIGHT_DISTANCE 140000
+// ADAM Radar values
+#define ADAM_SIGHT_DISTANCE 1000.0f // Squared in order to avoid squareRoot
+#define ADAM_DIST_SCALAR	0.01f // method of ad-hoc
 // ADAM flag
 #define ADAM_ADAPTIVE		0x00000001
 #define ADAM_RESET 			0x00000002
