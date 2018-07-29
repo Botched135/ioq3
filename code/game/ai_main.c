@@ -1427,7 +1427,7 @@ int BotAIStartFrame(int time) {
 	G_CheckBotSpawn();
 	
 	adaptiveAgents = GetAdaptiveAgents(botstates);
-
+	G_Printf("Helloooo\n");
 	if(adaptiveAgents)
 	{
 		if(strlen(pipeName) == 0)
@@ -1439,11 +1439,16 @@ int BotAIStartFrame(int time) {
 		// Informing trainer that this server is ready
 		pipeOut = trap_Adam_Com_Open_Pipe(pipeName,0);
 		trap_Adam_Com_Write_Ready(pipeOut);
+		G_Printf("is there anybody \n");
 		trap_Adam_Com_Close_Pipe(pipeOut);
 		// Check if it needs to pause for a new generation
-		pipeIn = trap_Adam_Com_Open_Pipe(pipeName,1);
+		
+		
+		pipeIn = trap_Adam_Com_Open_Pipe(pipeName,1);// gets stuck here
+		G_Printf("... in there? \n");
 		trap_Adam_Com_Read_Pause(pipeIn,pausing);
 		trap_Adam_Com_Close_Pipe(pipeIn);
+		
 	}
 
 	if(pausing[0] == 'p')
@@ -1495,7 +1500,7 @@ int BotAIStartFrame(int time) {
 				trap_EA_Respawn(i);
 				botstates[i]->adamFlag = ADAM_ADAPTIVE;
 			}
-			G_Printf("I am into pausing");
+			G_Printf("I am into pausing\n");
 			trap_BotUserCommand(botstates[i]->client, &botstates[i]->lastucmd);
 		}
 		if(adaptiveAgents)

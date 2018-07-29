@@ -294,7 +294,6 @@ int BotGetItemLongTermGoal(bot_state_t *bs, int tfl, bot_goal_t *goal) {
 	//if it is time to find a new long term goal
 	if (bs->ltg_time < FloatTime()) {
 		//pop the current goal from the stack
-			G_Printf("#JustRoamAround\n");
 		trap_BotPopGoal(bs->gs);
 		//BotAI_Print(PRT_MESSAGE, "%s: choosing new ltg\n", ClientName(bs->client, netname, sizeof(netname)));
 		//choose a new goal
@@ -1874,10 +1873,9 @@ int AINode_Seek_LTG(bot_state_t *bs)
 
 	BotTeamGoals(bs, qfalse); // This does not do anything for our playmode
 	//get the current long term goal
-	G_Printf("Just before long term goal check \n");
+	
 	if (!BotLongTermGoal(bs, bs->tfl, qfalse, &goal)) 
 	{
-		G_Printf("What can I say except, Hello there? \n");
 		return qtrue;
 	}
 	//check for nearby goals periodicly
@@ -1908,7 +1906,6 @@ int AINode_Seek_LTG(bot_state_t *bs)
 #endif
 		//
 		if (BotNearbyGoal(bs, bs->tfl, &goal, range)) {
-			G_Printf("Goal is nearby! \n");
 			trap_BotResetLastAvoidReach(bs->ms);
 			//get the goal at the top of the stack
 			trap_BotGetTopGoal(bs->gs, &tmpgoal);
@@ -2940,7 +2937,7 @@ int Adam_Fight(bot_state_t* bs, float* neatData)
 	bs->enemyRadars[2] = AdamEnemyRadar(bs,backward,fov);
 	bs->enemyRadars[3] = AdamEnemyRadar(bs,left,fov);
 	
-	G_Printf("Enemy radar values: [%f,%f,%f,%f]\n",	bs->enemyRadars[0],	bs->enemyRadars[1],	bs->enemyRadars[2],	bs->enemyRadars[3]);
+	//G_Printf("Enemy radar values: [%f,%f,%f,%f]\n",	bs->enemyRadars[0],	bs->enemyRadars[1],	bs->enemyRadars[2],	bs->enemyRadars[3]);
 	
 	AdamOnTarget(bs,forward);
 

@@ -2682,7 +2682,7 @@ void Com_Init( char *commandLine ) {
 //	Swap_Init ();
 	Cbuf_Init ();
 	Adam_Com_SetupPipe();
-	Com_Printf("PipeName:%s",adam_pipename);
+	Com_Printf("PipeName:%s \n",adam_pipename);
 	Com_DetectSSE();
 
 	// override anything from the config files with command line args

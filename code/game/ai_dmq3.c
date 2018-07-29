@@ -111,7 +111,6 @@ int red_numaltroutegoals;
 aas_altroutegoal_t blue_altroutegoals[MAX_ALTROUTEGOALS];
 int blue_numaltroutegoals;
 
-// Pipename (need to automate it)
 
 /*
 ==================

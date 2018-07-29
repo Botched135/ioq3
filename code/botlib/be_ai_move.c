@@ -1214,7 +1214,6 @@ int BotWalkInDirection(bot_movestate_t *ms, vec3_t dir, float speed, int type)
 			//if near the top or going down
 			if (ms->velocity[2] < 50)
 			{
-				botimport.Print(PRT_MESSAGE,"In else case\n");
 				EA_Move(ms->client, dir, speed);
 			} //end if
 		} //end if
