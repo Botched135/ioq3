@@ -2837,7 +2837,8 @@ void AdamEnter_Fight(bot_state_t* bs)
 int Adam_Fight(bot_state_t* bs, float* neatData)
 {
 	aas_entityinfo_t entinfo;
-	vec3_t target,moveDirection,viewAngles,viewAngle,forward,right,backward,left,aimDirection;
+	vec3_t target,moveDirection,viewAngles,viewAngle;
+	vec3_t forward, forRight,right, backRight,backward,backLeft,left,forLeft;
 	int areanum,i, clientNumber, moveType, enemy, fov;
 	
 	enemy = bs->enemy;
@@ -2937,11 +2938,29 @@ int Adam_Fight(bot_state_t* bs, float* neatData)
 	bs->enemyRadars[2] = AdamEnemyRadar(bs,backward,fov);
 	bs->enemyRadars[3] = AdamEnemyRadar(bs,left,fov);
 	
+	VectorAdd(forward,right,forRight);
+	VectorNormalize(forRight); // Consider to do VectorNormalizeFast if the other becomes a problem
+
+	VectorAdd(right,backward,backRight);
+	VectorNormalize(backRight);
+
+	VectorAdd(backward,left,backLeft);
+	VectorNormalize(backLeft);
+
+	VectorAdd(left, forward,forLeft);
+	VectorNormalize(forLeft);
+
+	// Wall Raycast 
 	bs->wallRaycast[0] = AdamWallSensor(bs,forward);
-	bs->wallRaycast[1] = AdamWallSensor(bs,right);
-	bs->wallRaycast[2] = AdamWallSensor(bs,backward);
-	bs->wallRaycast[3] = AdamWallSensor(bs,left);
-	//G_Printf("Enemy radar values: [%f,%f,%f,%f]\n",	bs->wallRaycast[0],	bs->wallRaycast[1],	bs->wallRaycast[2],	bs->wallRaycast[3]);
+	bs->wallRaycast[1] = AdamWallSensor(bs,forRight);
+	bs->wallRaycast[2] = AdamWallSensor(bs,right);
+	bs->wallRaycast[3] = AdamWallSensor(bs,backRight);
+	bs->wallRaycast[4] = AdamWallSensor(bs,backward);
+	bs->wallRaycast[5] = AdamWallSensor(bs,backLeft);
+	bs->wallRaycast[6] = AdamWallSensor(bs,left);
+	bs->wallRaycast[7] = AdamWallSensor(bs,forLeft);
+	//G_Printf("Enemy radar values: [%f,%f,%f,%f,%f,%f,%f,%f]\n", bs->wallRaycast[0],	bs->wallRaycast[1],	bs->wallRaycast[2],	bs->wallRaycast[3]
+	//														  , bs->wallRaycast[4],	bs->wallRaycast[5],	bs->wallRaycast[6],	bs->wallRaycast[7]);
 	
 	AdamOnTarget(bs,forward);
 

@@ -1431,12 +1431,12 @@ int BotAIStartFrame(int time) {
 		}
 
 		// Informing trainer that this server is ready
-		pipeOut = trap_Adam_Com_Open_Pipe(pipeName,0);
+		/*pipeOut = trap_Adam_Com_Open_Pipe(pipeName,0);
 		trap_Adam_Com_Write_Ready(pipeOut);
-		trap_Adam_Com_Close_Pipe(pipeOut);
+		trap_Adam_Com_Close_Pipe(pipeOut);*/
 		
 		// Check if it needs to pause for a new generation
-		pipeIn = trap_Adam_Com_Open_Pipe(pipeName,1);// gets stuck here
+		pipeIn = trap_Adam_Com_Open_Pipe(pipeName,1);
 		trap_Adam_Com_Read_Pause(pipeIn,pausing);
 		trap_Adam_Com_Close_Pipe(pipeIn);
 		
@@ -1466,6 +1466,7 @@ int BotAIStartFrame(int time) {
 	}
 
 	if (bot_pause.integer) {
+		G_Printf("Pausing \n");
 		// execute bot user commands every frame
 		for( i = 0; i < MAX_CLIENTS; i++ ) {
 			if( !botstates[i] || !botstates[i]->inuse ) {
@@ -1502,7 +1503,6 @@ int BotAIStartFrame(int time) {
 				botstates[i]->cur_ps.persistant[PERS_HITS] = 0;
 				trap_EA_Respawn(i);
 				botstates[i]->adamFlag = ADAM_ADAPTIVE;
-				G_Printf("I am into pausing\n");
 			}
 			
 			trap_BotUserCommand(botstates[i]->client, &botstates[i]->lastucmd);
