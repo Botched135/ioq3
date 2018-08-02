@@ -183,7 +183,10 @@ void AdamBotMapScripts(bot_state_t *bs);
 int  AdamFindEnemy(bot_state_t *bs, int currentEnemy);
 void AdamUpdateEnemy(bot_state_t *bs);
 qboolean AdamOnTarget(bot_state_t* bs, vec3_t forward);
+// Based on NERO
 float AdamEnemyRadar(bot_state_t* bs, vec3_t direction, float fov);
+// Based Hierarchal thingy thesis
+float AdamWallSensor(bot_state_t* bs, vec3_t direction);
 int BotMoveInRandDir(bot_state_t* bs, vec3_t dirResult);
 
 //ctf flags

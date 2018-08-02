@@ -1423,7 +1423,7 @@ ADAM AGENT
 ===================================================================
 */
 // ADAM definitions
-#define ADAM_NN_FITNESS 4
+#define ADAM_NN_FITNESS 6 // Need two more than actual fitness variables to pass around
 #define ADAM_NN_INPUT 26
 #define ADAM_NN_OUTPUT 10
 

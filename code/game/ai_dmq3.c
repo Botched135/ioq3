@@ -5829,6 +5829,19 @@ float AdamEnemyRadar(bot_state_t* bs, vec3_t direction, float fov)
 	// Calculate the sum of whatever we are going to return
 	return distSum;
 }
+float AdamWallSensor(bot_state_t* bs, vec3_t direction)
+{
+	bsp_trace_t trace;
+	vec3_t traceEnd, origin;
+
+	VectorCopy(bs->origin,origin);
+	VectorScale(direction,1000.0f,traceEnd);
+	VectorAdd(traceEnd,origin,traceEnd);
+
+	BotAI_Trace(&trace,origin,NULL,NULL,traceEnd,bs->entitynum,MASK_SOLID);
+
+	return trace.fraction;
+}
 
 int BotMoveInRandDir(bot_state_t* bs, vec3_t dirResult)
 {

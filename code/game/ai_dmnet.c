@@ -2937,7 +2937,11 @@ int Adam_Fight(bot_state_t* bs, float* neatData)
 	bs->enemyRadars[2] = AdamEnemyRadar(bs,backward,fov);
 	bs->enemyRadars[3] = AdamEnemyRadar(bs,left,fov);
 	
-	//G_Printf("Enemy radar values: [%f,%f,%f,%f]\n",	bs->enemyRadars[0],	bs->enemyRadars[1],	bs->enemyRadars[2],	bs->enemyRadars[3]);
+	bs->wallRaycast[0] = AdamWallSensor(bs,forward);
+	bs->wallRaycast[1] = AdamWallSensor(bs,right);
+	bs->wallRaycast[2] = AdamWallSensor(bs,backward);
+	bs->wallRaycast[3] = AdamWallSensor(bs,left);
+	//G_Printf("Enemy radar values: [%f,%f,%f,%f]\n",	bs->wallRaycast[0],	bs->wallRaycast[1],	bs->wallRaycast[2],	bs->wallRaycast[3]);
 	
 	AdamOnTarget(bs,forward);
 

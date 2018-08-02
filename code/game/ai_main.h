@@ -281,6 +281,7 @@ typedef struct bot_state_s
 	vec3_t enemyDir;
 	float enemyRadars[4];								// from view direction and in clockwise direction
 	float lastTime;
+	float wallRaycast[8];
 	
 } bot_state_t;
 

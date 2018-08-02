@@ -1325,7 +1325,6 @@ when the level is changed
 void BotResetState(bot_state_t *bs) {
 	int client, entitynum, inuse;
 	int movestate, goalstate, chatstate, weaponstate;
-	int adaptive;
 	bot_settings_t settings;
 	int character;
 	playerState_t ps;					//current player state
@@ -1334,7 +1333,6 @@ void BotResetState(bot_state_t *bs) {
 	//save some things that should not be reset here
 	memcpy(&settings, &bs->settings, sizeof(bot_settings_t));
 	memcpy(&ps, &bs->cur_ps, sizeof(playerState_t));
-	adaptive = 0;
 	inuse = bs->inuse;
 	client = bs->client;
 	entitynum = bs->entitynum;
@@ -1343,9 +1341,7 @@ void BotResetState(bot_state_t *bs) {
 	goalstate = bs->gs;
 	chatstate = bs->cs;
 	weaponstate = bs->ws;
-	entergame_time = bs->entergame_time;
-	if(bs->adamFlag & ADAM_ADAPTIVE)
-		adaptive |= (ADAM_ADAPTIVE | ADAM_RESET);
+	entergame_time = bs->entergame_time;	
 	
 	//free checkpoints and patrol points
 	BotFreeWaypoints(bs->checkpoints);
@@ -1364,7 +1360,6 @@ void BotResetState(bot_state_t *bs) {
 	bs->entitynum = entitynum;
 	bs->character = character;
 	bs->entergame_time = entergame_time;
-	bs->adamFlag = adaptive;
 	//reset several states
 	if (bs->ms) trap_BotResetMoveState(bs->ms);
 	if (bs->gs) trap_BotResetGoalState(bs->gs);
@@ -1427,7 +1422,6 @@ int BotAIStartFrame(int time) {
 	G_CheckBotSpawn();
 	
 	adaptiveAgents = GetAdaptiveAgents(botstates);
-	G_Printf("Helloooo\n");
 	if(adaptiveAgents)
 	{
 		if(strlen(pipeName) == 0)
@@ -1439,13 +1433,10 @@ int BotAIStartFrame(int time) {
 		// Informing trainer that this server is ready
 		pipeOut = trap_Adam_Com_Open_Pipe(pipeName,0);
 		trap_Adam_Com_Write_Ready(pipeOut);
-		G_Printf("is there anybody \n");
 		trap_Adam_Com_Close_Pipe(pipeOut);
+		
 		// Check if it needs to pause for a new generation
-		
-		
 		pipeIn = trap_Adam_Com_Open_Pipe(pipeName,1);// gets stuck here
-		G_Printf("... in there? \n");
 		trap_Adam_Com_Read_Pause(pipeIn,pausing);
 		trap_Adam_Com_Close_Pipe(pipeIn);
 		
@@ -1483,37 +1474,50 @@ int BotAIStartFrame(int time) {
 			if( g_entities[i].client->pers.connected != CON_CONNECTED ) {
 				continue;
 			}
-			// Gather fitness values
+
+			fitnessOutput[i][0] = 0;
+			fitnessOutput[i][1] = 0;
 
 			botstates[i]->lastucmd.forwardmove = 0;
 			botstates[i]->lastucmd.rightmove = 0;
 			botstates[i]->lastucmd.upmove = 0;
 			botstates[i]->lastucmd.buttons = 0;
 			botstates[i]->lastucmd.serverTime = time;
+			g_entities[botstates[i]->entitynum].health = 125;
 			//RESET THE BOT
-			if(botstates[i]->adamFlag & ADAM_RESET)
+			if(botstates[i]->adamFlag & (ADAM_ADAPTIVE | ADAM_RESET))
 			{
+				
+				// Gather fitness values
+				fitnessOutput[i][0] = 2;
+				fitnessOutput[i][1] = botstates[i]->inuse;
+				fitnessOutput[i][2] = 1.0f;
+				fitnessOutput[i][3] = 1.0f;
+				fitnessOutput[i][4] = 1.0f;
+				fitnessOutput[i][5] = 1.0f;
+
 				botstates[i]->num_deaths = 0;
 				botstates[i]->num_kills = 0;
 				botstates[i]->lasthitcount = 0;
 				botstates[i]->cur_ps.persistant[PERS_HITS] = 0;
 				trap_EA_Respawn(i);
 				botstates[i]->adamFlag = ADAM_ADAPTIVE;
+				G_Printf("I am into pausing\n");
 			}
-			G_Printf("I am into pausing\n");
+			
 			trap_BotUserCommand(botstates[i]->client, &botstates[i]->lastucmd);
 		}
 		if(adaptiveAgents)
 		{
 			//Send Fitness data
-			/*if(fitnessSent == 2)
+			if(fitnessSent == 2)
 			{
 				pipeOut = trap_Adam_Com_Open_Pipe(pipeName,0);
 				trap_Adam_Com_Write_Fitness(pipeOut,fitnessOutput,adaptiveAgents);
 				trap_Adam_Com_Close_Pipe(pipeOut);
 			
 				fitnessSent = 0;
-			}*/
+			}
 		}
 		return qtrue;
 	}
@@ -1524,8 +1528,8 @@ int BotAIStartFrame(int time) {
 				continue;
 			if( g_entities[i].client->pers.connected != CON_CONNECTED )
 				continue;
-		
-		botstates[i]->adamFlag |= ADAM_RESET;
+		if(botstates[i]->adamFlag & ADAM_ADAPTIVE)
+			botstates[i]->adamFlag |= ADAM_RESET;
 	}
 	
 
@@ -1637,18 +1641,16 @@ int BotAIStartFrame(int time) {
 	if(adaptiveAgents)
 	{
 		// WRITE DATA
-	
 		BotStateToNEAT(neatInput,botstates);
+
 		pipeOut = trap_Adam_Com_Open_Pipe(pipeName,0);
 		trap_Adam_Com_Write_Neat(pipeOut,neatInput,adaptiveAgents);
-		//G_Printf("After writing to pipe\n");
 		trap_Adam_Com_Close_Pipe(pipeOut);
 
 	
 		// READ DATA
 		pipeIn = trap_Adam_Com_Open_Pipe(pipeName,1);
 		trap_Adam_Com_Read_Neat(pipeIn,neatOutput,adaptiveAgents);
-		//G_Printf("After reading from pipe\n");
 		trap_Adam_Com_Close_Pipe(pipeIn);
 		// TRANSLATE STRING DATA TO FLOAT ARRAY
 		if(strlen(neatOutput) >0)
