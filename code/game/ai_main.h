@@ -274,12 +274,12 @@ typedef struct bot_state_s
 
 	//FOR ADAM AGENT
 	int adamFlag;
-	int enemyWeapon;
 	int (*adamNode)(struct bot_state_s* bs,float* neatData);
 
 	int squaredEnemyDis;
-	vec3_t enemyDir;
-	float enemyRadars[4];								// from view direction and in clockwise direction
+
+	float isOnTarget;
+	float enemyRadars[12];								// from view direction and in clockwise direction
 	float lastTime;
 	float wallRaycast[8];
 	

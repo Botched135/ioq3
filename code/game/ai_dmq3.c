@@ -5657,7 +5657,7 @@ int AdamFindEnemy(bot_state_t *bs, int currentEnemy)
 		bs->enemysuicide = qfalse;
 		bs->enemydeath_time = 0;
 		bs->enemyvisible_time = FloatTime();
-
+/*
 		//ADAM Specific Setting of flags
 		if (BotAI_GetClientState(entinfo.number, &ps))
 		{
@@ -5685,19 +5685,19 @@ int AdamFindEnemy(bot_state_t *bs, int currentEnemy)
 		{
 			bs->adamFlag &= ~(ADAM_ENEMYCROUCH | ADAM_ENEMYAIR | ADAM_ENEMYFIRE);
 			bs->enemyWeapon = 0;
-		}
+		}*/
 		
-		VectorNormalize(dir);
-		VectorCopy(dir,bs->enemyDir);
+		//VectorNormalize(dir);
+		//VectorCopy(dir,bs->enemyDir);
 		bs->squaredEnemyDis = squareDist;
 		return qtrue;
 	}
 	if(!bs->enemy)
 	{
-		VectorClear(bs->enemyDir);
+		//VectorClear(bs->enemyDir);
 		bs->squaredEnemyDis = 0;
-		bs->adamFlag &= ~(ADAM_ENEMYCROUCH | ADAM_ENEMYAIR| ADAM_ENEMYFIRE);
-		bs->enemyWeapon = 0;
+		//bs->adamFlag &= ~(ADAM_ENEMYCROUCH | ADAM_ENEMYAIR| ADAM_ENEMYFIRE);
+		//bs->enemyWeapon = 0;
 	}
 	return qfalse;
 
@@ -5729,7 +5729,7 @@ void AdamUpdateEnemy(bot_state_t *bs)
 	// No need to delay it, as the NN will use last frames data anyway
 	VectorCopy(enemyVelocity, bs->enemyvelocity);
 	VectorCopy(entinfo.origin, bs->enemyorigin);
-
+/*
 	//ADAM Specific
 	if (BotAI_GetClientState(entinfo.number, &ps))
 	{
@@ -5761,7 +5761,7 @@ void AdamUpdateEnemy(bot_state_t *bs)
 	}
 
 	VectorCopy(dir,bs->enemyDir);
-	VectorNormalize(bs->enemyDir);
+	VectorNormalize(bs->enemyDir);*/
 	bs->squaredEnemyDis = squareDist;
 }
 // Only called when there is a bot in the front rangefinder.
@@ -5780,10 +5780,7 @@ qboolean AdamOnTarget(bot_state_t* bs, vec3_t forward)
 
 	//Need to check if it hits another enemy 
 	if (trace.ent == bs->enemy) 
-	{
-		trap_EA_Attack(bs->client);
 		return qtrue;
-	}
 	return qfalse;
 }
 
@@ -5852,4 +5849,176 @@ int BotMoveInRandDir(bot_state_t* bs, vec3_t dirResult)
 	VectorSet(dir,x,y,0);
 	VectorCopy(dir,dirResult);
 	return trap_BotMoveInDirection(bs->ms,dir,400,MOVE_WALK);
+}
+
+void AdamVectors(bot_state_t* bs, vec3_t viewAngles)
+{
+	float angle, cosPit, sinPit;
+	static float cosYaw, sinYaw;
+	vec3_t dirVec;
+
+	angle = viewAngles[PITCH] * (M_PI*2 / 360);
+	sinPit = sin(angle);
+	cosPit = cos(angle);
+
+	angle = viewAngles[YAW] * (M_PI*2 / 360);
+	sinYaw = sin(angle);
+	cosYaw = cos(angle);
+
+	// View forward
+	dirVec[0] = cosPit*cosYaw;
+	dirVec[1] = cosPit*sinYaw;
+	dirVec[2] = -sinPit;
+
+	bs->isOnTarget = AdamOnTarget(bs,dirVec) ? 1 : 0;
+	/*
+	=========================================================
+	DIRECTLY FORWARD [1,0,0]
+	=========================================================
+	*/
+
+	// Forward
+	dirVec[0] = cosYaw;
+	dirVec[1] = sinYaw;
+	dirVec[2] = 0;
+    
+	bs->wallRaycast[0] = AdamWallSensor(bs,dirVec);
+
+	// Right
+	dirVec[0] = sinYaw;
+	dirVec[1] = -cosYaw;
+
+	bs->wallRaycast[1] = AdamWallSensor(bs,dirVec);
+
+	// Backward
+
+	dirVec[0] = -cosYaw;
+	dirVec[1] = -sinYaw;
+
+	bs->wallRaycast[2] = AdamWallSensor(bs,dirVec);
+
+	// Left 
+
+	dirVec[0] = -sinYaw;
+	dirVec[1] = cosYaw;
+
+	bs->wallRaycast[3] = AdamWallSensor(bs,dirVec);
+    
+
+	/*
+	=========================================================
+	45 DEGREES SWITCH TO THE RIGHT (FORWARD [0.7,-0.7,0])
+	=========================================================
+	*/
+
+	angle -= FIRSTRADAR; // Need to preprocess 
+	cosYaw = cos(angle);
+	sinYaw = sin(angle);
+
+	// Forward+Right
+	dirVec[0] = cosYaw;
+	dirVec[1] = sinYaw;
+    
+	bs->wallRaycast[4] = AdamWallSensor(bs,dirVec);
+
+	// Right + Back
+	dirVec[0] = sinYaw;
+	dirVec[1] = -cosYaw;
+
+	bs->wallRaycast[5] = AdamWallSensor(bs,dirVec);
+	bs->enemyRadars[0] = AdamEnemyRadar(bs,dirVec,90.0f);
+
+	// Back + Left
+
+	dirVec[0] = -cosYaw;
+	dirVec[1] = -sinYaw;
+
+	bs->wallRaycast[6] = AdamWallSensor(bs,dirVec);
+	bs->enemyRadars[1] = AdamEnemyRadar(bs,dirVec,90.0f);
+
+	// Left + Front
+
+	dirVec[0] = -sinYaw;
+	dirVec[1] = cosYaw;
+
+	bs->wallRaycast[7] = AdamWallSensor(bs,dirVec);
+
+	/*
+	=========================================================
+	ENEMY RADARS
+	=========================================================
+	*/
+	
+	// Two 45 degrees radars
+	angle -= SECONDRADAR;
+	sinYaw = sin(angle);
+	cosYaw = cos(angle);
+
+	// Right of the front vector
+
+	dirVec[0] = cosYaw;
+	dirVec[1] = sinYaw;
+
+	bs->enemyRadars[2] = AdamEnemyRadar(bs,dirVec,45.0f);
+
+	// Left of the front vector
+	dirVec[1] = -sinYaw;
+
+	bs->enemyRadars[3] = AdamEnemyRadar(bs,dirVec,45.0f);
+
+	// Two 40 degrees angle
+	angle += THIRDRADAR;
+	sinYaw = sin(angle);
+	cosYaw = cos(angle);
+
+	dirVec[0] = cosYaw;
+	dirVec[1] = sinYaw;
+
+	bs->enemyRadars[4] = AdamEnemyRadar(bs,dirVec,30.0f);
+
+	dirVec[1] = -sinYaw;
+
+	bs->enemyRadars[5] = AdamEnemyRadar(bs,dirVec,30.0f);
+
+	// Total of  15 degrees left here angle
+	angle += FOURTHRADAR;
+	sinYaw = sin(angle);
+	cosYaw = cos(angle);
+
+	dirVec[0] = cosYaw;
+	dirVec[1] = sinYaw;
+
+	bs->enemyRadars[6] = AdamEnemyRadar(bs,dirVec,10.0f);
+
+	dirVec[1] = -sinYaw;
+
+	bs->enemyRadars[7] = AdamEnemyRadar(bs,dirVec,10.0f);
+
+	// Two 40 degrees angle
+	angle += FIFTHRADAR;
+	sinYaw = sin(angle);
+	cosYaw = cos(angle);
+
+	dirVec[0] = cosYaw;
+	dirVec[1] = sinYaw;
+
+	bs->enemyRadars[8] = AdamEnemyRadar(bs,dirVec,3.5f);
+
+	dirVec[1] = -sinYaw;
+
+	bs->enemyRadars[9] = AdamEnemyRadar(bs,dirVec,3.5f);
+
+	// The two smallest angles degrees angle
+	angle += SIXTHRADAR;
+	sinYaw = sin(angle);
+	cosYaw = cos(angle);
+
+	dirVec[0] = cosYaw;
+	dirVec[1] = sinYaw;
+
+	bs->enemyRadars[10] = AdamEnemyRadar(bs,dirVec,1.5f);
+
+	dirVec[1] = -sinYaw;
+
+	bs->enemyRadars[11] = AdamEnemyRadar(bs,dirVec,1.5f);
 }

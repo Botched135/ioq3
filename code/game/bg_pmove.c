@@ -1820,7 +1820,6 @@ void PM_UpdateViewAngles( playerState_t *ps, const usercmd_t *cmd ) {
 		}
 		ps->viewangles[i] = SHORT2ANGLE(temp);
 	}
-
 }
 
 
