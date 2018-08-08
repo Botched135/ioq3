@@ -1421,32 +1421,36 @@ int BotAIStartFrame(int time) {
 
 	G_CheckBotSpawn();
 	
-	adaptiveAgents = GetAdaptiveAgents(botstates);
-	if(adaptiveAgents)
-	{
-		if(strlen(pipeName) == 0)
+	#if ADAM_ACTIVE
+		adaptiveAgents = GetAdaptiveAgents(botstates);
+		if(adaptiveAgents)
 		{
-			trap_Adam_Com_Get_PipeName(pipeName);
-			G_Printf("Pipename in AI_MAIN: %s\n",pipeName);
+			if(strlen(pipeName) == 0)
+			{
+				trap_Adam_Com_Get_PipeName(pipeName);
+				G_Printf("Pipename in AI_MAIN: %s\n",pipeName);
+			}
+
+			// Informing trainer that this server is ready
+			pipeOut = trap_Adam_Com_Open_Pipe(pipeName,0);
+			trap_Adam_Com_Write_Ready(pipeOut);
+			trap_Adam_Com_Close_Pipe(pipeOut);
+
+			#if ADAM_TRAINING
+				// Check if it needs to pause for a new generation
+				pipeIn = trap_Adam_Com_Open_Pipe(pipeName,1);
+				trap_Adam_Com_Read_Pause(pipeIn,pausing);
+				trap_Adam_Com_Close_Pipe(pipeIn);
+			#endif
 		}
-
-		// Informing trainer that this server is ready
-		/*pipeOut = trap_Adam_Com_Open_Pipe(pipeName,0);
-		trap_Adam_Com_Write_Ready(pipeOut);
-		trap_Adam_Com_Close_Pipe(pipeOut);*/
-		
-		// Check if it needs to pause for a new generation
-		pipeIn = trap_Adam_Com_Open_Pipe(pipeName,1);
-		trap_Adam_Com_Read_Pause(pipeIn,pausing);
-		trap_Adam_Com_Close_Pipe(pipeIn);
-		
-	}
-
-	if(pausing[0] == 'p')
-		trap_Cvar_Set("bot_pause","1");
-	else
-		trap_Cvar_Set("bot_pause","0");
 	
+
+		if(pausing[0] == 'p')
+			trap_Cvar_Set("bot_pause","1");
+		else
+			trap_Cvar_Set("bot_pause","0");
+	#endif
+
 	trap_Cvar_Update(&bot_rocketjump);
 	trap_Cvar_Update(&bot_grapple);
 	trap_Cvar_Update(&bot_fastchat);
@@ -1484,41 +1488,43 @@ int BotAIStartFrame(int time) {
 			botstates[i]->lastucmd.upmove = 0;
 			botstates[i]->lastucmd.buttons = 0;
 			botstates[i]->lastucmd.serverTime = time;
-			g_entities[botstates[i]->entitynum].health = 125;
-			//RESET THE BOT
-			if(botstates[i]->adamFlag & (ADAM_ADAPTIVE | ADAM_RESET))
-			{
+			#if ADAM_TRAINING && ADAM_ACTIVE
+				g_entities[botstates[i]->entitynum].health = 125;
+				//RESET THE BOT
+				if(botstates[i]->adamFlag & (ADAM_ADAPTIVE | ADAM_RESET))
+				{
 				
-				// Gather fitness values
-				fitnessOutput[i][0] = 2;
-				fitnessOutput[i][1] = botstates[i]->inuse;
-				fitnessOutput[i][2] = 1.0f;
-				fitnessOutput[i][3] = 1.0f;
-				fitnessOutput[i][4] = 1.0f;
-				fitnessOutput[i][5] = 1.0f;
+					// Gather fitness values
+					fitnessOutput[i][0] = 2;
+					fitnessOutput[i][1] = 1.0f;
+					fitnessOutput[i][2] = 1.0f;
+					fitnessOutput[i][3] = 1.0f;
+					fitnessOutput[i][4] = 1.0f;
 
-				botstates[i]->num_deaths = 0;
-				botstates[i]->num_kills = 0;
-				botstates[i]->lasthitcount = 0;
-				botstates[i]->cur_ps.persistant[PERS_HITS] = 0;
-				trap_EA_Respawn(i);
-				botstates[i]->adamFlag = ADAM_ADAPTIVE;
-			}
-			
+					botstates[i]->num_deaths = 0;
+					botstates[i]->num_kills = 0;
+					botstates[i]->lasthitcount = 0;
+					botstates[i]->cur_ps.persistant[PERS_HITS] = 0;
+					trap_EA_Respawn(i);
+					botstates[i]->adamFlag = ADAM_ADAPTIVE;
+				}
+			#endif
 			trap_BotUserCommand(botstates[i]->client, &botstates[i]->lastucmd);
 		}
-		if(adaptiveAgents)
-		{
-			//Send Fitness data
-			if(fitnessSent == 2)
+		#if ADAM_TRAINING && ADAM_ACTIVE
+			if(adaptiveAgents)
 			{
-				pipeOut = trap_Adam_Com_Open_Pipe(pipeName,0);
-				trap_Adam_Com_Write_Fitness(pipeOut,fitnessOutput,adaptiveAgents);
-				trap_Adam_Com_Close_Pipe(pipeOut);
+				//Send Fitness data
+				if(fitnessSent == 2)
+				{
+					pipeOut = trap_Adam_Com_Open_Pipe(pipeName,0);
+					trap_Adam_Com_Write_Fitness(pipeOut,fitnessOutput,adaptiveAgents);
+					trap_Adam_Com_Close_Pipe(pipeOut);
 			
-				fitnessSent = 0;
+					fitnessSent = 0;
+				}
 			}
-		}
+		#endif
 		return qtrue;
 	}
 
@@ -1638,29 +1644,31 @@ int BotAIStartFrame(int time) {
 
 	floattime = trap_AAS_Time();
 	//Collect data here.
-	if(adaptiveAgents)
-	{
-		// WRITE DATA
-		BotStateToNEAT(neatInput,botstates);
+	#if ADAM_ACTIVE
+		if(adaptiveAgents)
+		{
+			// WRITE DATA
+			BotStateToNEAT(neatInput,botstates);
 
-		pipeOut = trap_Adam_Com_Open_Pipe(pipeName,0);
-		trap_Adam_Com_Write_Neat(pipeOut,neatInput,adaptiveAgents);
-		trap_Adam_Com_Close_Pipe(pipeOut);
+			pipeOut = trap_Adam_Com_Open_Pipe(pipeName,0);
+			trap_Adam_Com_Write_Neat(pipeOut,neatInput,adaptiveAgents);
+			trap_Adam_Com_Close_Pipe(pipeOut);
 
 	
-		// READ DATA
-		pipeIn = trap_Adam_Com_Open_Pipe(pipeName,1);
-		trap_Adam_Com_Read_Neat(pipeIn,neatOutput,adaptiveAgents);
-		trap_Adam_Com_Close_Pipe(pipeIn);
-		// TRANSLATE STRING DATA TO FLOAT ARRAY
-		if(strlen(neatOutput) >0)
-		{
-			//G_Printf("Before conversion to actions\n");
-			trap_Adam_Com_Array_To_Action(neatActions,neatOutput);
-			//G_Printf("After conversion to actions\n");
-			//G_Printf("First:%.2f, Second: %.2f, Third: %.2f\n",neatActions[0][0],neatActions[1][0],neatActions[2][0]);
+			// READ DATA
+			pipeIn = trap_Adam_Com_Open_Pipe(pipeName,1);
+			trap_Adam_Com_Read_Neat(pipeIn,neatOutput,adaptiveAgents);
+			trap_Adam_Com_Close_Pipe(pipeIn);
+			// TRANSLATE STRING DATA TO FLOAT ARRAY
+			if(strlen(neatOutput) >0)
+			{
+				//G_Printf("Before conversion to actions\n");
+				trap_Adam_Com_Array_To_Action(neatActions,neatOutput);
+				//G_Printf("After conversion to actions\n");
+				//G_Printf("First:%.2f, Second: %.2f, Third: %.2f\n",neatActions[0][0],neatActions[1][0],neatActions[2][0]);
+			}
 		}
-	}
+	#endif
 	// execute scheduled bot AI
 	for( i = 0; i < MAX_CLIENTS; i++ ) {
 		if( !botstates[i] || !botstates[i]->inuse ) {
@@ -1925,18 +1933,37 @@ int BotAdamAgent(int clientNum,float thinktime, float *neatInput)
 // reference to the bots and their neural networks
 void BotStateToNEAT(float neatArray[MAX_CLIENTS][ADAM_NN_INPUT], bot_state_t **bs)
 {
-	int i,j,tempSquareDist;
+	int i,j,health;
 	for(i = 0; i < MAX_CLIENTS;i++)
 	{
 		if(bs[i]->adamFlag & ADAM_ADAPTIVE)
 		{
 			//Initialization and NN connection
 			neatArray[i][0] = 2;
-			neatArray[i][1] = bs[i]->inuse;
-			neatArray[i][2] = bs[i]->client;
+
+			// WALL RAYCASTS
+			for(j=0;j<8;j++)
+				neatArray[i][j+1] = bs[i]->wallRaycast[j];
+			
+			// ENEMY RADAR
+			for(j=0;j<12;j++)
+				neatArray[i][j+9] = bs[i]->enemyRadars[j];
+			
+			// IS ON TARGET
+			neatArray[i][21] = bs[i]->isOnTarget;
+
+			health = bs[i]->lastframe_health;
+			// Self HP
+			if(health < 0)
+				neatArray[i][22] = 0;
+			else
+				neatArray[i][22] = health/200;
+
+			// TAKING DMG
+			neatArray[i][23] = bs[i]->lasthealth > health+1 ? 1 : 0;
 
 			// Self Weapon
-			neatArray[i][3] = bs[i]->weaponnum/9;
+		/*	neatArray[i][3] = bs[i]->weaponnum/9;
 
 			// Self Ammo
 			neatArray[i][4] = GetAmmoWeapon(bs[i]->weaponnum,bs[i])/200;
@@ -1966,11 +1993,11 @@ void BotStateToNEAT(float neatArray[MAX_CLIENTS][ADAM_NN_INPUT], bot_state_t **b
 			neatArray[i][13] = bs[i]->viewangles[1]/360;
 			neatArray[i][14] = bs[i]->viewangles[2]/360;
 
-			/*
+			///*
 			========================================================
 			ENEMY 
 			========================================================
-			*/
+			//
 
 			// Enemy Radar
 
@@ -1978,7 +2005,7 @@ void BotStateToNEAT(float neatArray[MAX_CLIENTS][ADAM_NN_INPUT], bot_state_t **b
 			
 			// G_Printf("Last call for enemyRadar:[%f,%f,%f,%f] \n",neatArray[i][15],neatArray[i][16],neatArray[i][17],neatArray[i][18]);
 			
-			/*
+			
 			// Enemy Crouching
 			neatArray[i][15] = (bs[i]->adamFlag & ADAM_ENEMYCROUCH) == ADAM_ENEMYCROUCH;
 			
@@ -1989,7 +2016,7 @@ void BotStateToNEAT(float neatArray[MAX_CLIENTS][ADAM_NN_INPUT], bot_state_t **b
 			neatArray[i][17] = (bs[i]->adamFlag & ADAM_ENEMYFIRE) == ADAM_ENEMYFIRE;
 			// Enemy Weapon
 			neatArray[i][18] = bs[i]->enemyWeapon/9;
-			*/
+			
 			tempSquareDist = bs[i]->squaredEnemyDis;
 			if(tempSquareDist > ADAM_MAX_DISTANCE)
 				tempSquareDist = 1;
@@ -2007,7 +2034,7 @@ void BotStateToNEAT(float neatArray[MAX_CLIENTS][ADAM_NN_INPUT], bot_state_t **b
 			// Enemy Velocity (consider to remove initially, since we are using hitscan)
 			neatArray[i][23] = (bs[i]->enemyvelocity[0]+320)/320;
 			neatArray[i][24] = (bs[i]->enemyvelocity[1]+320)/320;
-			neatArray[i][25] = (bs[i]->enemyvelocity[2]+270)/270;
+			neatArray[i][25] = (bs[i]->enemyvelocity[2]+270)/270;*/
 		}
 
 	}

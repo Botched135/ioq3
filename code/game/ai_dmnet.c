@@ -2894,11 +2894,21 @@ int Adam_Fight(bot_state_t* bs, float* neatData)
 	BotUpdateBattleInventory(bs,enemy);
 	AdamUpdateEnemy(bs);
 	BotSetupForMovement(bs);
-	moveType = MOVE_WALK;
-/*	// SHOOT
-	if(neatData[0] > NN_THRESHOLD)
-		BotCheckAttack(bs); // Or adam Attack
+		// SETTING UP PIE-SLICES, ON TARGET AND RAYCASTERS 
+	AdamVectors(bs,viewAngles,forward,right,backward,left);
 
+	/* 
+	====================================================
+	NEAT-ACTIONS
+	====================================================
+	*/
+	
+
+	// SHOOT
+	if(neatData[0] > NN_THRESHOLD)
+		trap_EA_Attack(clientNumber); // Or adam Attack
+
+	moveType = MOVE_WALK;
 	// JUMP
 	if(neatData[1]> NN_THRESHOLD)
 	{
@@ -2910,60 +2920,32 @@ int Adam_Fight(bot_state_t* bs, float* neatData)
 	// CROUCH
 	else if(neatData[2]>NN_THRESHOLD)
 		moveType = MOVE_CROUCH;
+
+	VectorClear(moveDirection);
 	
-	// SHOULD SWITCH?
-	if(neatData[3]>NN_THRESHOLD)
+	// MOVE FORWARD/BACKWARDS
+	if(neatData[3]> NN_THRESHOLD)
 	{
-		// SWITCH
-		AdamSelectWeapon(bs,neatData[4]);
+		if(neatData[4] > neatData[3])
+			VectorCopy(backward,moveDirection);
+		else
+			VectorCopy(forward,moveDirection);
 	}
-*/
-	// MOVE
-	moveDirection[0]= (neatData[5]*2)-1;
-	moveDirection[1]= (neatData[6]*2)-1;
-	moveDirection[2]= 0.0f;
-	VectorNormalize(moveDirection);
-
-	viewAngle[0] = neatData[7];
-	viewAngle[1] = neatData[8];
-	viewAngle[2] = neatData[9];
+	else if(neatData[4]>NN_THRESHOLD)
+		VectorCopy(backward,moveDirection);
 	
-	AngleVectors(viewAngles,forward,right,NULL);
-	VectorScale(forward,-1.0f,backward);
-	VectorScale(right,-1.0f,left);
+	// RIGHT/LEFT
+	if(neatData[5]> NN_THRESHOLD)
+	{
+		if(neatData[6] > neatData[5])
+			VectorAdd(left,moveDirection,moveDirection);
+		else
+			VectorAdd(right,moveDirection,moveDirection);
+	}
+	else if(neatData[6]>NN_THRESHOLD)
+		VectorAdd(left,moveDirection,moveDirection);
 	
-	// Enemy radars 
-	bs->enemyRadars[0] = AdamEnemyRadar(bs,forward,fov);
-	bs->enemyRadars[1] = AdamEnemyRadar(bs,right,fov);
-	bs->enemyRadars[2] = AdamEnemyRadar(bs,backward,fov);
-	bs->enemyRadars[3] = AdamEnemyRadar(bs,left,fov);
-	
-	VectorAdd(forward,right,forRight);
-	VectorNormalize(forRight); // Consider to do VectorNormalizeFast if the other becomes a problem
-
-	VectorAdd(right,backward,backRight);
-	VectorNormalize(backRight);
-
-	VectorAdd(backward,left,backLeft);
-	VectorNormalize(backLeft);
-
-	VectorAdd(left, forward,forLeft);
-	VectorNormalize(forLeft);
-
-	// Wall Raycast 
-	bs->wallRaycast[0] = AdamWallSensor(bs,forward);
-	bs->wallRaycast[1] = AdamWallSensor(bs,forRight);
-	bs->wallRaycast[2] = AdamWallSensor(bs,right);
-	bs->wallRaycast[3] = AdamWallSensor(bs,backRight);
-	bs->wallRaycast[4] = AdamWallSensor(bs,backward);
-	bs->wallRaycast[5] = AdamWallSensor(bs,backLeft);
-	bs->wallRaycast[6] = AdamWallSensor(bs,left);
-	bs->wallRaycast[7] = AdamWallSensor(bs,forLeft);
-	//G_Printf("Enemy radar values: [%f,%f,%f,%f,%f,%f,%f,%f]\n", bs->wallRaycast[0],	bs->wallRaycast[1],	bs->wallRaycast[2],	bs->wallRaycast[3]
-	//														  , bs->wallRaycast[4],	bs->wallRaycast[5],	bs->wallRaycast[6],	bs->wallRaycast[7]);
-	
-	AdamOnTarget(bs,forward);
-
+	trap_BotMoveInDirection(bs->ms,moveDirection,400,moveType);
 
 	// Look for better enemy, for next frame 
 	AdamFindEnemy(bs,enemy);

@@ -274,12 +274,12 @@ typedef struct bot_state_s
 
 	//FOR ADAM AGENT
 	int adamFlag;
-	int enemyWeapon;
 	int (*adamNode)(struct bot_state_s* bs,float* neatData);
 
 	int squaredEnemyDis;
-	vec3_t enemyDir;
-	float enemyRadars[4];								// from view direction and in clockwise direction
+
+	float isOnTarget;
+	float enemyRadars[12];								// from view direction and in clockwise direction
 	float lastTime;
 	float wallRaycast[8];
 	
@@ -328,3 +328,7 @@ int GetAmmoWeapon(int weaponNumber, bot_state_t* bs);
 #define ADAM_ENEMYCROUCH 	0x00000004
 #define ADAM_ENEMYAIR 		0x00000008
 #define ADAM_ENEMYFIRE		0x00000010
+
+// ADAM Training
+#define ADAM_TRAINING		1
+#define ADAM_ACTIVE			1

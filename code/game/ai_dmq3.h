@@ -188,6 +188,16 @@ float AdamEnemyRadar(bot_state_t* bs, vec3_t direction, float fov);
 // Based Hierarchal thingy thesis
 float AdamWallSensor(bot_state_t* bs, vec3_t direction);
 int BotMoveInRandDir(bot_state_t* bs, vec3_t dirResult);
+void AdamVectors(bot_state_t* bs, vec3_t viewAngles,vec3_t f,vec3_t r,vec3_t b,vec3_t l);
+
+// ADAM DEFINITIONS
+#define FIRSTRADAR  M_PI/4
+#define SECONDRADAR M_PI/8
+#define THIRDRADAR  15.0f* (M_PI*2 / 360)
+#define FOURTHRADAR 5.0f* (M_PI*2 / 360)
+#define FIFTHRADAR  1.75f* (M_PI*2 / 360)
+#define SIXTHRADAR  0.75* (M_PI*2 / 360)
+
 
 //ctf flags
 #define CTF_FLAG_NONE		0
