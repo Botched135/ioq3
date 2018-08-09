@@ -859,6 +859,10 @@ intptr_t SV_GameSystemCalls( intptr_t *args ) {
 	case ADAM_COM_READ_PAUSE:
 		trap_Adam_Com_Read_Pause(args[1],VMA(2));
 		return 0;
+		
+	case ADAM_COM_READ_FINISH:
+		trap_Adam_Com_Read_Finish(args[1],VMA(2));
+		return 0;  
 
 	case ADAM_COM_WRITE_NEAT:
 		trap_Adam_Com_Write_Neat(args[1],VMA(2),args[3]);
@@ -875,8 +879,7 @@ intptr_t SV_GameSystemCalls( intptr_t *args ) {
 	case ADAM_COM_ARRAY_TO_ACTION:
 		trap_Adam_Com_Array_To_Action(VMA(1),VMA(2));
 		return 0;
-	case TRAP_POWER:
-		return trap_power(args[1],args[2]);
+
 	default:
 		Com_Error( ERR_DROP, "Bad game system trap: %ld", (long int) args[0] );
 	}

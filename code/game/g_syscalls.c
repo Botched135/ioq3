@@ -816,6 +816,11 @@ void trap_Adam_Com_Read_Pause(int file, char *input)
 	syscall(ADAM_COM_READ_PAUSE,file,input);
 }
 
+void trap_Adam_Com_Read_Finish(int file, char* input)
+{
+	syscall(ADAM_COM_READ_FINISH,file,input);
+}
+
 void trap_Adam_Com_Write_Neat(int file, float neatArray[MAX_CLIENTS][ADAM_NN_INPUT], int adaptiveAgents)
 {
 	syscall(ADAM_COM_WRITE_NEAT,file,neatArray,adaptiveAgents);
@@ -835,8 +840,5 @@ void trap_Adam_Com_Array_To_Action(float outputArray[MAX_CLIENTS][ADAM_NN_OUTPUT
 {
 	syscall(ADAM_COM_ARRAY_TO_ACTION,outputArray,data);
 }
-float trap_power(float x, float y)
-{
-	return syscall(TRAP_POWER,x,y);
-}
+
 

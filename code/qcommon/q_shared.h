@@ -1423,8 +1423,8 @@ ADAM AGENT
 ===================================================================
 */
 // ADAM definitions
-#define ADAM_NN_FITNESS 6 // Need two more than actual fitness variables to pass around
-#define ADAM_NN_INPUT 26
+#define ADAM_NN_FITNESS 5 // Need two more than actual fitness variables to pass around
+#define ADAM_NN_INPUT 25
 #define ADAM_NN_OUTPUT 10
 
 int 	trap_Adam_Com_Open_Pipe			(char* fileName,int read);
@@ -1432,6 +1432,7 @@ int 	trap_Adam_Com_Close_Pipe		(int fd);
 void	trap_Adam_Com_Get_PipeName		(char* input);
 void 	trap_Adam_Com_Read_Neat			(int file, char* outputArray,int adaptiveAgents);
 void	trap_Adam_Com_Read_Pause		(int file, char* input);
+void 	trap_Adam_Com_Read_Finish 		(int file, char* input);
 void 	trap_Adam_Com_Write_Neat		(int file, float neatArray[MAX_CLIENTS][ADAM_NN_INPUT], int adaptiveAgents);
 void	trap_Adam_Com_Write_Fitness		(int file, float fitnessArray[MAX_CLIENTS][ADAM_NN_FITNESS], int adaptiveAgents);
 void	trap_Adam_Com_Write_Ready		(int file);

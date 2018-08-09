@@ -5258,6 +5258,7 @@ void BotDeathmatchAI(bot_state_t *bs, float thinktime) {
 			bs->adamFlag |= (ADAM_ADAPTIVE | ADAM_RESET);
 			bs->flags &= ~BFL_IDEALVIEWSET;
 			bs->lastTime = 0.0f;
+			bs->shotsTaken = 0;
 			G_Printf("ADAPTIVE AGENT INITIALIZED\n");
 			return;
 		}
@@ -5540,46 +5541,6 @@ void AdamBotMapScripts(bot_state_t *bs)
 			}
 		}
 		shootbutton = qfalse;
-		//if an enemy is in the bounding box then shoot the button
-		for (i = 0; i < level.maxclients; i++) {
-
-			if (i == bs->client) continue;
-			//
-			BotEntityInfo(i, &entinfo);
-			//
-			if (!entinfo.valid) continue;
-			//if the enemy isn't dead and the enemy isn't the bot self
-			if (EntityIsDead(&entinfo) || entinfo.number == bs->entitynum) continue;
-			//
-			if (entinfo.origin[0] > mins[0] && entinfo.origin[0] < maxs[0]) {
-				if (entinfo.origin[1] > mins[1] && entinfo.origin[1] < maxs[1]) {
-					if (entinfo.origin[2] > mins[2] && entinfo.origin[2] < maxs[2]) {
-						//if there's a team mate below the crusher
-						if (BotSameTeam(bs, i)) {
-							shootbutton = qfalse;
-							break;
-						}
-						else if (bs->enemy == i) {
-							shootbutton = qtrue;
-						}
-					}
-				}
-			}
-		}
-		if (shootbutton) {
-			bs->flags |= BFL_IDEALVIEWSET;
-			VectorSubtract(buttonorg, bs->eye, dir);
-			vectoangles(dir, bs->ideal_viewangles);
-			aim_accuracy = trap_Characteristic_BFloat(bs->character, CHARACTERISTIC_AIM_ACCURACY, 0, 1);
-			bs->ideal_viewangles[PITCH] += 8 * crandom() * (1 - aim_accuracy);
-			bs->ideal_viewangles[PITCH] = AngleMod(bs->ideal_viewangles[PITCH]);
-			bs->ideal_viewangles[YAW] += 8 * crandom() * (1 - aim_accuracy);
-			bs->ideal_viewangles[YAW] = AngleMod(bs->ideal_viewangles[YAW]);
-			//
-			if (InFieldOfVision(bs->viewangles, 20, bs->ideal_viewangles)) {
-				//trap_EA_Attack(bs->client);
-			}
-		}
 	}
 }
 int AdamFindEnemy(bot_state_t *bs, int currentEnemy)

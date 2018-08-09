@@ -1413,6 +1413,7 @@ int BotAIStartFrame(int time) {
 	static int lastbotthink_time;
 	// FOR ADAM
 	char  pausing[2];
+	char  finish[2];
 	char* neatOutput;
 	float neatInput[MAX_CLIENTS][ADAM_NN_INPUT];
 	// FINAL NUMBER IS DEFINED BY HOW MANY ACTIONS IT CAN TAKE
@@ -1489,11 +1490,13 @@ int BotAIStartFrame(int time) {
 			botstates[i]->lastucmd.buttons = 0;
 			botstates[i]->lastucmd.serverTime = time;
 			#if ADAM_TRAINING && ADAM_ACTIVE
-				g_entities[botstates[i]->entitynum].health = 125;
 				//RESET THE BOT
 				if(botstates[i]->adamFlag & (ADAM_ADAPTIVE | ADAM_RESET))
 				{
-				
+					// So basically, what is important?
+					// Accuracy --> should not reward for JUST accuracy but also promote shooting
+					// Amount of kills
+					// Avoid dying 
 					// Gather fitness values
 					fitnessOutput[i][0] = 2;
 					fitnessOutput[i][1] = 1.0f;
@@ -1507,7 +1510,9 @@ int BotAIStartFrame(int time) {
 					botstates[i]->cur_ps.persistant[PERS_HITS] = 0;
 					trap_EA_Respawn(i);
 					botstates[i]->adamFlag = ADAM_ADAPTIVE;
+					botstates[i]->shotsTaken = 0;
 				}
+				g_entities[botstates[i]->entitynum].health = 125;
 			#endif
 			trap_BotUserCommand(botstates[i]->client, &botstates[i]->lastucmd);
 		}
@@ -1520,7 +1525,10 @@ int BotAIStartFrame(int time) {
 					pipeOut = trap_Adam_Com_Open_Pipe(pipeName,0);
 					trap_Adam_Com_Write_Fitness(pipeOut,fitnessOutput,adaptiveAgents);
 					trap_Adam_Com_Close_Pipe(pipeOut);
-			
+
+					pipeIn = trap_Adam_Com_Open_Pipe(pipeName,1);
+					trap_Adam_Com_Read_Finish(pipeIn,finish);
+					trap_Adam_Com_Close_Pipe(pipeIn);
 					fitnessSent = 0;
 				}
 			}

@@ -957,9 +957,9 @@ int	    trap_Adam_Com_Close_Pipe(int fd);
 void	trap_Adam_Com_Get_PipeName(char *input);
 void    trap_Adam_Com_Read_Neat(int file, char* outputArray,int adaptiveAgents);
 void	trap_Adam_Com_Read_Pause(int file, char *input);
+void 	trap_Adam_Com_Read_Finish(int file, char* input);
 void	trap_Adam_Com_Write_Neat(int file, float neatArray[MAX_CLIENTS][ADAM_NN_INPUT], int adaptiveAgents);
 void	trap_Adam_Com_Write_Fitness(int file, float fitnessArray[MAX_CLIENTS][ADAM_NN_FITNESS], int adaptiveAgents);
 void	trap_Adam_Com_Write_Ready(int file);
 void	trap_Adam_Com_Array_To_Action(float outputArray[MAX_CLIENTS][ADAM_NN_OUTPUT], char* data);
-float	trap_power(float x, float y);
 

@@ -3832,6 +3832,14 @@ void trap_Adam_Com_Read_Pause(int file, char* input)
 		printf("PAUSE READ ERROR! \n");
 }
 
+void trap_Adam_Com_Read_Finish(int file, char* input)
+{
+	int returnVal;
+	returnVal = read(file,input,2);
+	if(returnVal<0)
+		printf("FINISH READ ERROR");
+}
+
 void trap_Adam_Com_Write_Neat(int file, float neatArray[MAX_CLIENTS][ADAM_NN_INPUT],int adaptiveAgents)
 {
 	int i, counter, returnVal;
@@ -3859,7 +3867,7 @@ void trap_Adam_Com_Write_Neat(int file, float neatArray[MAX_CLIENTS][ADAM_NN_INP
 	
 	if(counter >0)
 	{
-		printf("WriteArray: %s\n",writeArray);
+		//printf("WriteArray: %s\n",writeArray);
         returnVal=write(file,writeArray, strlen(writeArray));
 		if(returnVal < 0)
 			printf("NN_INPUT WRITE ERROR");
@@ -3872,15 +3880,15 @@ void trap_Adam_Com_Write_Fitness(int file, float fitnessArray[MAX_CLIENTS][ADAM_
 {
 	int i,counter, returnVal;
 	char *writeArray;
-	char temp[22];
+	char temp[30];
 	counter = 0;
 	writeArray = calloc(220, sizeof(char));
 	for(i = 0; i<MAX_CLIENTS;i++)
 	{
-		if(fitnessArray[i][0] ==2 && fitnessArray[i][1])
+		if(fitnessArray[i][0] ==2)
 		{
-			snprintf(temp,21,"%.2f,%.2f,%.2f,%.2f:",fitnessArray[i][2],fitnessArray[i][3],fitnessArray[i][4],fitnessArray[i][5]);
-			temp[21] = '\0';
+			snprintf(temp,29,"%.4f,%.4f,%.4f,%.4f:",fitnessArray[i][1],fitnessArray[i][2],fitnessArray[i][3],fitnessArray[i][4]);
+			temp[29] = '\0';
 			strcat(writeArray,temp);
 			counter++;
 		}

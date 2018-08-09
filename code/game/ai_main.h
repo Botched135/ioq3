@@ -277,7 +277,7 @@ typedef struct bot_state_s
 	int (*adamNode)(struct bot_state_s* bs,float* neatData);
 
 	int squaredEnemyDis;
-
+	int shotsTaken;
 	float isOnTarget;
 	float enemyRadars[12];								// from view direction and in clockwise direction
 	float lastTime;

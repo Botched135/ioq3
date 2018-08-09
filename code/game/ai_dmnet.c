@@ -2906,7 +2906,11 @@ int Adam_Fight(bot_state_t* bs, float* neatData)
 
 	// SHOOT
 	if(neatData[0] > NN_THRESHOLD)
+	{
 		trap_EA_Attack(clientNumber); // Or adam Attack
+		bs->shotsTaken++;
+	}
+		
 
 	moveType = MOVE_WALK;
 	// JUMP

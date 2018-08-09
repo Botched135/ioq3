@@ -228,8 +228,8 @@ equ trap_Adam_Com_Close_Pipe            -602
 equ trap_Adam_Com_Get_PipeName          -603
 equ trap_Adam_Com_Read_Neat             -604
 equ trap_Adam_Com_Read_Pause            -605
-equ trap_Adam_Com_Write_Neat            -606
-equ	trap_Adam_Com_Write_Fitness         -607
-equ trap_Adam_Com_Write_Ready           -608
-equ trap_Adam_Com_Array_To_Action       -609
-equ trap_power                          -610
+equ trap_Adam_Com_Read_Finish           -606  
+equ trap_Adam_Com_Write_Neat            -607
+equ	trap_Adam_Com_Write_Fitness         -608
+equ trap_Adam_Com_Write_Ready           -609
+equ trap_Adam_Com_Array_To_Action       -610
