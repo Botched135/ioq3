@@ -3836,20 +3836,20 @@ void trap_Adam_Com_Write_Neat(int file, float neatArray[MAX_CLIENTS][ADAM_NN_INP
 {
 	int i, counter, returnVal;
 	char *writeArray;
-	char temp[169];
+	char temp[170];
 	counter = 0;
-	writeArray = calloc(1240,sizeof(char));
+	writeArray = calloc(650,sizeof(char));
 	for(i = 0; i<MAX_CLIENTS;i++)
 	{
 		if(neatArray[i][0] == 2)
 		{
-			snprintf(temp,168,
-			"%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f:", 
-			neatArray[i][2],neatArray[i][3],neatArray[i][4],neatArray[i][5],neatArray[i][6],neatArray[i][7],neatArray[i][8],
-			neatArray[i][9],neatArray[i][10],neatArray[i][11],neatArray[i][12],neatArray[i][13],neatArray[i][14],neatArray[i][15],
-			neatArray[i][16],neatArray[i][17],neatArray[i][18],neatArray[i][19],neatArray[i][20],neatArray[i][21],neatArray[i][22],
-			neatArray[i][23],neatArray[i][24],neatArray[i][25]);
-			temp[168] = '\0';
+			snprintf(temp,162,
+			"%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f:", 
+			neatArray[i][1],neatArray[i][2],neatArray[i][3],neatArray[i][4],neatArray[i][5],neatArray[i][6],
+			neatArray[i][7],neatArray[i][8],neatArray[i][9],neatArray[i][10],neatArray[i][11],neatArray[i][12],
+			neatArray[i][13],neatArray[i][14],neatArray[i][15],neatArray[i][16],neatArray[i][17],neatArray[i][18],
+			neatArray[i][19],neatArray[i][20],neatArray[i][21],neatArray[i][22],neatArray[i][23]);
+			temp[162] = '\0';
 			strcat(writeArray,temp);
 			counter++;
 			
@@ -3859,7 +3859,7 @@ void trap_Adam_Com_Write_Neat(int file, float neatArray[MAX_CLIENTS][ADAM_NN_INP
 	
 	if(counter >0)
 	{
-		//printf("WriteArray: %s\n",writeArray);
+		printf("WriteArray: %s\n",writeArray);
         returnVal=write(file,writeArray, strlen(writeArray));
 		if(returnVal < 0)
 			printf("NN_INPUT WRITE ERROR");
