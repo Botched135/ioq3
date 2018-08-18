@@ -1422,6 +1422,7 @@ void BotClearPath(bot_state_t *bs, bot_moveresult_t *moveresult) {
 						// if the mine is visible from the current position
 						if (bsptrace.fraction >= 1.0 || bsptrace.ent == state.number) {
 							// shoot at the mine
+							G_Printf("wolololo\n");
 							trap_EA_Attack(bs->client);
 						}
 					}
@@ -1811,7 +1812,7 @@ int AINode_Seek_LTG(bot_state_t *bs)
 	bot_moveresult_t moveresult;
 	int range;
 	char buf[128];
-	bot_goal_t tmpgoal,testGoal;
+	bot_goal_t tmpgoal;
 	
 	//trap_BotGetTopGoal(bs->gs,&testGoal);
 	if (BotIsObserver(bs)) {
@@ -2668,6 +2669,7 @@ int Adam_Seek(bot_state_t* bs, float* neatData)
 	//if there is an enemy
 	if (AdamFindEnemy(bs, -1)) 
 	{
+		trap_BotEmptyGoalStack(bs->gs);
 		AdamEnter_Fight(bs);
 		return qfalse;
 	}
@@ -2825,8 +2827,12 @@ int Adam_NearbySeek(bot_state_t* bs, float* neatData)
 		bs->ideal_viewangles[2] *=0.5;
 	}
 	if(AdamFindEnemy(bs,-1))
+	{
+		trap_BotEmptyGoalStack(bs->gs);
 		AdamEnter_Fight(bs);
-
+		return qfalse;
+	}
+		
 	return qtrue;
 }
 void AdamEnter_Fight(bot_state_t* bs)
@@ -2837,9 +2843,11 @@ void AdamEnter_Fight(bot_state_t* bs)
 int Adam_Fight(bot_state_t* bs, float* neatData)
 {
 	aas_entityinfo_t entinfo;
-	vec3_t target,moveDirection,viewAngles,viewAngle;
-	vec3_t forward, forRight,right, backRight,backward,backLeft,left,forLeft;
-	int areanum,i, clientNumber, moveType, enemy, fov;
+	vec3_t moveDirection,viewAngles;
+	vec3_t forward, right, backward,left, nullVector;
+	int clientNumber, moveType, enemy, moveSuccess;
+	float angleTurn,angleTurnRight, angleTurnLeft;
+	
 	
 	enemy = bs->enemy;
 	if (BotIsDead(bs)) 
@@ -2858,62 +2866,111 @@ int Adam_Fight(bot_state_t* bs, float* neatData)
 		return qfalse;
 	}
 	VectorCopy(bs->viewangles,viewAngles);
-	//update last time player was seen
-	if (BotEntityVisible(bs->entitynum, bs->eye, viewAngles, 360, enemy)) 
-	{
-		bs->enemyvisible_time = FloatTime();
-		VectorCopy(entinfo.origin, target);
 
-		//update the reachability area and origin if possible
-		areanum = BotPointAreaNum(target);
-		if (areanum && trap_AAS_AreaReachability(areanum)) 
-		{
-			VectorCopy(target, bs->lastenemyorigin);
-			bs->lastenemyareanum = areanum;
-		}
-	}
-	//If the bot has not been seen in X seconds, return to seek
-	if(bs->enemyvisible_time < FloatTime()-4)
+
+	clientNumber = bs->client;
+	// Update the enemy
+	BotSetupForMovement(bs);
+	// SETTING UP PIE-SLICES, ON TARGET AND RAYCASTERS 
+	AdamVectors(bs,viewAngles,forward,right,backward,left);
+
+	//If no enemies are within radar range, return to seek
+	if(!AdamEnemyInRange(bs))
 	{
 		AdamEnter_Seek(bs);
 		return qfalse;
 	}
-	//else if it cannot find another enemy, go back to seek
-	else if(bs->enemyvisible_time < FloatTime())
-	{
-		if(!AdamFindEnemy(bs,-1))
-		{
-			AdamEnter_Seek(bs);
-			return qfalse;
-		}
-		
-	}
-	fov = 90.0f;
-	clientNumber = bs->client;
-	// Update the enemy
-	BotUpdateBattleInventory(bs,enemy);
-	AdamUpdateEnemy(bs);
-	BotSetupForMovement(bs);
-		// SETTING UP PIE-SLICES, ON TARGET AND RAYCASTERS 
-	AdamVectors(bs,viewAngles,forward,right,backward,left);
-
+	
 	/* 
 	====================================================
 	NEAT-ACTIONS
 	====================================================
 	*/
 	
-
+	//G_Printf("The neat data: SHOOT: %.3f, JUMP: %.3f, CROUCH: %.3f, MOVE [%.3f,%.3f,%.3f,%.3f], turn right %.3f, turn left: %.3f\n",neatData[0],neatData[1],neatData[2]
+	//,neatData[3],neatData[4],neatData[5],neatData[6],neatData[7],neatData[8]);
+	VectorClear(nullVector);
 	// SHOOT
 	if(neatData[0] > NN_THRESHOLD)
 	{
 		trap_EA_Attack(clientNumber); // Or adam Attack
+		bs->flags ^= BFL_ATTACKED;
 		bs->shotsTaken++;
 	}
 		
-
 	moveType = MOVE_WALK;
-	// JUMP
+	// JUMP or crouch 
+	/*if(neatData[1]> NN_THRESHOLD)
+		moveType = MOVE_JUMP;
+	else if (neatData[1]< -NN_THRESHOLD)
+		moveType = MOVE_CROUCH;
+	*/
+	VectorClear(moveDirection);
+	/*
+	// MOVE FORWARD/BACKWARDS
+	if(neatData[2] > NN_THRESHOLD)
+		VectorCopy(forward,moveDirection);
+	else if(neatData[2] < -NN_THRESHOLD)
+		VectorCopy(backward,moveDirection);
+	
+	// MOVE RIGHT/LEFT
+	if(neatData[3]> NN_THRESHOLD)
+		VectorAdd(left,moveDirection,moveDirection);
+	else if(neatData[3]< -NN_THRESHOLD)
+		VectorAdd(right,moveDirection,moveDirection);
+	
+	trap_BotMoveInDirection(bs->ms,moveDirection,400,moveType);
+*/
+	if(neatData[1]> NN_THRESHOLD)
+	{
+		if(neatData[2] > neatData[1])
+			VectorCopy(backward,moveDirection);
+		else
+			VectorCopy(forward,moveDirection);
+	}
+	else if(neatData[2]>NN_THRESHOLD)
+		VectorCopy(backward,moveDirection);
+	
+	// RIGHT/LEFT
+	if(neatData[3]> NN_THRESHOLD)
+	{
+		if(neatData[4] > neatData[3])
+			VectorAdd(left,moveDirection,moveDirection);
+		else
+			VectorAdd(right,moveDirection,moveDirection);
+	}
+	else if(neatData[4]>NN_THRESHOLD)
+		VectorAdd(left,moveDirection,moveDirection);
+	
+	moveSuccess = trap_BotMoveInDirection(bs->ms,moveDirection,400,moveType);
+	
+	if(!moveSuccess)
+		bs->moveFaliures++;
+
+	
+	
+	angleTurn =0;
+	angleTurnLeft = 0;
+	angleTurnRight = 0;
+	if(neatData[5]> NN_THRESHOLD)
+	{
+		//The values are between [0.5;1]
+		angleTurnLeft = (neatData[4]*2.0f)-1.0f;
+		angleTurnLeft *= 25.0f;
+		angleTurn+= angleTurnLeft;
+		
+	}
+	if(neatData[6]> NN_THRESHOLD)
+	{
+		//The values are between [-0.5;-1]
+		angleTurnRight = (neatData[4]*2.0f)-1.0f;
+		angleTurnRight *= -25.0f;
+		angleTurn+=angleTurnRight;
+	}
+
+	bs->ideal_viewangles[YAW]+= angleTurn;
+
+	/*
 	if(neatData[1]> NN_THRESHOLD)
 	{
 		if(neatData[2]> NN_THRESHOLD &&  neatData[2] > neatData[1])
@@ -2950,9 +3007,11 @@ int Adam_Fight(bot_state_t* bs, float* neatData)
 		VectorAdd(left,moveDirection,moveDirection);
 	
 	trap_BotMoveInDirection(bs->ms,moveDirection,400,moveType);
+*/
+	// How to turn...
+
 
 	// Look for better enemy, for next frame 
-	AdamFindEnemy(bs,enemy);
 	Add_Ammo(&g_entities[bs->entitynum],WEAPONINDEX_MACHINEGUN,100);
 
 	return qtrue;
@@ -2977,9 +3036,16 @@ int Adam_Respawn(bot_state_t* bs,float* neatData)
 {
 	// if waiting for the actual respawn
 	if (bs->respawn_wait) 
-	{
+	{	
 		if (!BotIsDead(bs))
-			AdamEnter_Seek(bs);
+		{
+			#if ADAM_DEBUG
+				AdamEnter_Debug(bs);
+			#else
+				AdamEnter_Seek(bs);
+			#endif
+
+		}
 		else
 			trap_EA_Respawn(bs->client);
 	}
@@ -2998,6 +3064,29 @@ int Adam_Respawn(bot_state_t* bs,float* neatData)
 	return qtrue;
 
 }
+#if ADAM_DEBUG
+void AdamEnter_Debug(bot_state_t* bs)
+{
+	bs->adamNode = Adam_Debug;
+	bs->debugTime = FloatTime()+10;
+}
+int Adam_Debug(bot_state_t* bs, float* neatData)
+{
+	vec3_t front, right, left, back;
+	int success;
+
+	if (BotIsDead(bs)) 
+	{
+		AdamEnter_Respawn(bs);
+		return qfalse;
+	}
+	BotSetupForMovement(bs);
+	AdamVectors(bs,bs->viewangles,front,right,back,left);
+	AdamOnTarget(bs,front);
+	return qtrue;
+
+}
+#endif
 
 int AdamGetLongTermItemGoal(bot_state_t* bs, int travelFlag, bot_goal_t* goal)
 {

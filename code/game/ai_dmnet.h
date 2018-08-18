@@ -74,6 +74,10 @@ void AdamEnter_Fight(bot_state_t* bs);
 int Adam_Fight(bot_state_t* bs, float* neatData);
 void AdamEnter_Respawn(bot_state_t* bs);
 int Adam_Respawn(bot_state_t*, float* neatData);
+#if ADAM_DEBUG
+void AdamEnter_Debug(bot_state_t* bs);
+int Adam_Debug(bot_state_t* bs, float* neatData);
+#endif
 
 // ADAM Helper functions
 int AdamGetLongTermItemGoal(bot_state_t* bs, int travelFlag, bot_goal_t* goal);

@@ -1059,11 +1059,13 @@ int BotAI(int client, float thinktime) {
 	//the real AI
 	BotDeathmatchAI(bs, thinktime);
 	//set the weapon selection every AI frame
-	trap_EA_SelectWeapon(bs->client, bs->weaponnum);
+	//trap_EA_SelectWeapon(bs->client, bs->weaponnum);
+	trap_EA_SelectWeapon(bs->client, WP_MACHINEGUN);
 	//subtract the delta angles
 	for (j = 0; j < 3; j++) {
 		bs->viewangles[j] = AngleMod(bs->viewangles[j] - SHORT2ANGLE(bs->cur_ps.delta_angles[j]));
 	}
+	Add_Ammo(&g_entities[bs->entitynum],WEAPONINDEX_MACHINEGUN,100);
 	//everything was ok
 	return qtrue;
 }
@@ -1404,26 +1406,28 @@ BotAIStartFrame
 ==================
 */
 int BotAIStartFrame(int time) {
-	int i,adaptiveAgents,pipeIn,pipeOut;
 	gentity_t	*ent;
 	bot_entitystate_t state;
-	int elapsed_time, thinktime;
+	int elapsed_time, thinktime,i;
 	static int local_time;
 	static int botlib_residual;
 	static int lastbotthink_time;
+	#if ADAM_ACTIVE
 	// FOR ADAM
-	char  pausing[2];
-	char  finish[2];
-	char* neatOutput;
+	int adaptiveAgents,pipeIn,pipeOut,shotsHits;
+	char  neatOutput[305],pausing[2],  finish[2];
+	int AdamAgentIndices[8];
 	float neatInput[MAX_CLIENTS][ADAM_NN_INPUT];
 	// FINAL NUMBER IS DEFINED BY HOW MANY ACTIONS IT CAN TAKE
-	float neatActions[MAX_CLIENTS][ADAM_NN_OUTPUT];
 	float fitnessOutput[MAX_CLIENTS][ADAM_NN_FITNESS];
-
+	#endif
+	float neatActions[MAX_CLIENTS][ADAM_NN_OUTPUT];
+	
+	
 	G_CheckBotSpawn();
 	
 	#if ADAM_ACTIVE
-		adaptiveAgents = GetAdaptiveAgents(botstates);
+		adaptiveAgents = GetAdaptiveAgents(botstates,AdamAgentIndices);
 		if(adaptiveAgents)
 		{
 			if(strlen(pipeName) == 0)
@@ -1437,12 +1441,10 @@ int BotAIStartFrame(int time) {
 			trap_Adam_Com_Write_Ready(pipeOut);
 			trap_Adam_Com_Close_Pipe(pipeOut);
 
-			#if ADAM_TRAINING
 				// Check if it needs to pause for a new generation
-				pipeIn = trap_Adam_Com_Open_Pipe(pipeName,1);
-				trap_Adam_Com_Read_Pause(pipeIn,pausing);
-				trap_Adam_Com_Close_Pipe(pipeIn);
-			#endif
+			pipeIn = trap_Adam_Com_Open_Pipe(pipeName,1);
+			trap_Adam_Com_Read_Pause(pipeIn,pausing);
+			trap_Adam_Com_Close_Pipe(pipeIn);
 		}
 	
 
@@ -1481,8 +1483,7 @@ int BotAIStartFrame(int time) {
 				continue;
 			}
 
-			fitnessOutput[i][0] = 0;
-			fitnessOutput[i][1] = 0;
+			
 
 			botstates[i]->lastucmd.forwardmove = 0;
 			botstates[i]->lastucmd.rightmove = 0;
@@ -1490,29 +1491,38 @@ int BotAIStartFrame(int time) {
 			botstates[i]->lastucmd.buttons = 0;
 			botstates[i]->lastucmd.serverTime = time;
 			#if ADAM_TRAINING && ADAM_ACTIVE
+				fitnessOutput[i][0] = 0;
 				//RESET THE BOT
 				if(botstates[i]->adamFlag & (ADAM_ADAPTIVE | ADAM_RESET))
 				{
 					// So basically, what is important?
 					// Accuracy --> should not reward for JUST accuracy but also promote shooting
+					// --> but lets try it first anyway
 					// Amount of kills
 					// Avoid dying 
 					// Gather fitness values
+					shotsHits = botstates[i]->lasthitcount-botstates[i]->lastGenerationShotHit;
 					fitnessOutput[i][0] = 2;
-					fitnessOutput[i][1] = 1.0f;
-					fitnessOutput[i][2] = 1.0f;
-					fitnessOutput[i][3] = 1.0f;
-					fitnessOutput[i][4] = 1.0f;
-
+					// Accuracy
+					fitnessOutput[i][1] = botstates[i]->shotsTaken > 0 ? 
+										(10.0f*shotsHits)
+										/(botstates[i]->shotsTaken*10.0f) : 0;
+					fitnessOutput[i][1]*= (shotsHits*0.3f);
+					// Movement
+					fitnessOutput[i][2] = botstates[i]->moveFaliures*0.0016f;//botstates[i]->num_kills;
+					// Deaths
+					fitnessOutput[i][3] = 0.0f;//(botstates[i]->timesHit*0.05f);
 					botstates[i]->num_deaths = 0;
 					botstates[i]->num_kills = 0;
-					botstates[i]->lasthitcount = 0;
-					botstates[i]->cur_ps.persistant[PERS_HITS] = 0;
-					trap_EA_Respawn(i);
+					botstates[i]->timesHit = 0;
+					botstates[i]->lastGenerationShotHit = botstates[i]->cur_ps.persistant[PERS_HITS];
+					//trap_EA_Respawn(i);
 					botstates[i]->adamFlag = ADAM_ADAPTIVE;
 					botstates[i]->shotsTaken = 0;
+					botstates[i]->moveFaliures =0;
+					
 				}
-				g_entities[botstates[i]->entitynum].health = 125;
+				g_entities[botstates[i]->entitynum].health = 200;
 			#endif
 			trap_BotUserCommand(botstates[i]->client, &botstates[i]->lastucmd);
 		}
@@ -1671,7 +1681,7 @@ int BotAIStartFrame(int time) {
 			if(strlen(neatOutput) >0)
 			{
 				//G_Printf("Before conversion to actions\n");
-				trap_Adam_Com_Array_To_Action(neatActions,neatOutput);
+				trap_Adam_Com_Array_To_Action(neatActions,AdamAgentIndices,neatOutput);
 				//G_Printf("After conversion to actions\n");
 				//G_Printf("First:%.2f, Second: %.2f, Third: %.2f\n",neatActions[0][0],neatActions[1][0],neatActions[2][0]);
 			}
@@ -1712,7 +1722,6 @@ int BotAIStartFrame(int time) {
 		BotUpdateInput(botstates[i], time, elapsed_time);
 		trap_BotUserCommand(botstates[i]->client, &botstates[i]->lastucmd);
 	}
-	
 	return qtrue;
 }
 
@@ -1909,10 +1918,15 @@ int BotAdamAgent(int clientNum,float thinktime, float *neatInput)
 	*/
 	bs->flags &= ~BFL_IDEALVIEWSET; 
 	AdamBotIntermission(bs);
-	
-	if (!bs->adamNode) AdamEnter_Seek(bs);
-	
+	#if ADAM_DEBUG
+		if(!bs->adamNode) AdamEnter_Debug(bs);
+	#else
+		if (!bs->adamNode) AdamEnter_Seek(bs);
+	#endif
 	BotResetNodeSwitches();
+	if(bs->lasthealth > bs->inventory[INVENTORY_HEALTH]+1)
+		bs->timesHit++;
+	
 	for (i = 0; i < MAX_NODESWITCHES; i++) 
 	{
 		if (bs->adamNode(bs,neatInput)) break;
@@ -1923,16 +1937,15 @@ int BotAdamAgent(int clientNum,float thinktime, float *neatInput)
 
 	bs->lastframe_health = bs->inventory[INVENTORY_HEALTH];
 	bs->lasthitcount = bs->cur_ps.persistant[PERS_HITS];
+
+
+
 	//subtract the delta angles
 	for(i = 0;i<3;i++)
 	{
 		bs->viewangles[i] = AngleMod(bs->viewangles[i]-SHORT2ANGLE(bs->cur_ps.delta_angles[i]));
 	}
-	/*
-	=====================
-	END OF NEURAL NETWORK
-	=====================
-	*/
+
 	return qtrue;
 
 }
@@ -1955,7 +1968,7 @@ void BotStateToNEAT(float neatArray[MAX_CLIENTS][ADAM_NN_INPUT], bot_state_t **b
 			
 			// ENEMY RADAR
 			for(j=0;j<12;j++)
-				neatArray[i][j+9] = bs[i]->enemyRadars[j];
+				neatArray[i][j+9] = bs[i]->enemyRadars[j][2];
 			
 			// IS ON TARGET
 			neatArray[i][21] = bs[i]->isOnTarget;
@@ -2001,7 +2014,7 @@ void BotStateToNEAT(float neatArray[MAX_CLIENTS][ADAM_NN_INPUT], bot_state_t **b
 			neatArray[i][13] = bs[i]->viewangles[1]/360;
 			neatArray[i][14] = bs[i]->viewangles[2]/360;
 
-			///*
+			//
 			========================================================
 			ENEMY 
 			========================================================
@@ -2285,14 +2298,17 @@ void AdamBotChatSetup(int client, bot_state_t *bs)
 			{ /*ignore*/ }
 	}
 }
-int GetAdaptiveAgents(bot_state_t** bs)
+int GetAdaptiveAgents(bot_state_t** bs, int* AdamIndices)
 {
 	int amount,i;
 	amount = 0;
 	for(i = 0; i < MAX_CLIENTS;i++)
 	{
 		if(bs[i]->adamFlag & ADAM_ADAPTIVE)
+		{ 
+			AdamIndices[amount] = i;
 			amount++;
+		}		
 	}
 	return amount;
 }

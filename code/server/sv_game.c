@@ -877,7 +877,7 @@ intptr_t SV_GameSystemCalls( intptr_t *args ) {
 		return 0;
 	
 	case ADAM_COM_ARRAY_TO_ACTION:
-		trap_Adam_Com_Array_To_Action(VMA(1),VMA(2));
+		trap_Adam_Com_Array_To_Action(VMA(1),VMA(2),VMA(3));
 		return 0;
 
 	default:

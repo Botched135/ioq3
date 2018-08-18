@@ -3098,7 +3098,6 @@ void Com_Frame( void ) {
 	if ( com_speeds->integer ) {
 		timeBeforeFirstEvents = Sys_Milliseconds ();
 	}
-
 	// Figure out how much time we have
 	if(!com_timedemo->integer)
 	{
@@ -3816,8 +3815,9 @@ void trap_Adam_Com_Get_PipeName(char* input)
 void trap_Adam_Com_Read_Neat(int file, char* outputArray,int adaptiveAgents)
 {
 	int returnVal;
-	int bufferSize = adaptiveAgents*59; // Actually 58, but one extra for safety
+	int bufferSize = adaptiveAgents*38; // Actually 58, but one extra for safety
 	returnVal = read(file,outputArray,bufferSize);
+	outputArray[304] = '\0';
 	if(returnVal < 0)
 	{
 		printf("NN_OUPUT READ ERROR! \n");
@@ -3844,20 +3844,20 @@ void trap_Adam_Com_Write_Neat(int file, float neatArray[MAX_CLIENTS][ADAM_NN_INP
 {
 	int i, counter, returnVal;
 	char *writeArray;
-	char temp[170];
+	char temp[160];
 	counter = 0;
-	writeArray = calloc(650,sizeof(char));
+	writeArray = calloc(1280,sizeof(char));
 	for(i = 0; i<MAX_CLIENTS;i++)
 	{
 		if(neatArray[i][0] == 2)
 		{
-			snprintf(temp,162,
-			"%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f:", 
+			snprintf(temp,157,
+			"%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,1:", 
 			neatArray[i][1],neatArray[i][2],neatArray[i][3],neatArray[i][4],neatArray[i][5],neatArray[i][6],
 			neatArray[i][7],neatArray[i][8],neatArray[i][9],neatArray[i][10],neatArray[i][11],neatArray[i][12],
 			neatArray[i][13],neatArray[i][14],neatArray[i][15],neatArray[i][16],neatArray[i][17],neatArray[i][18],
-			neatArray[i][19],neatArray[i][20],neatArray[i][21],neatArray[i][22],neatArray[i][23]);
-			temp[162] = '\0';
+			neatArray[i][19],neatArray[i][20],neatArray[i][21],neatArray[i][23]);
+			temp[157] = '\0';
 			strcat(writeArray,temp);
 			counter++;
 			
@@ -3880,15 +3880,15 @@ void trap_Adam_Com_Write_Fitness(int file, float fitnessArray[MAX_CLIENTS][ADAM_
 {
 	int i,counter, returnVal;
 	char *writeArray;
-	char temp[30];
+	char temp[26];
 	counter = 0;
 	writeArray = calloc(220, sizeof(char));
 	for(i = 0; i<MAX_CLIENTS;i++)
 	{
 		if(fitnessArray[i][0] ==2)
 		{
-			snprintf(temp,29,"%.4f,%.4f,%.4f,%.4f:",fitnessArray[i][1],fitnessArray[i][2],fitnessArray[i][3],fitnessArray[i][4]);
-			temp[29] = '\0';
+			snprintf(temp,25,"%.4f,%.4f,%.4f:",fitnessArray[i][1],fitnessArray[i][2],fitnessArray[i][3]);
+			temp[25] = '\0';
 			strcat(writeArray,temp);
 			counter++;
 		}
@@ -3914,40 +3914,35 @@ void trap_Adam_Com_Write_Ready(int file)
 
 }
 
-void trap_Adam_Com_Array_To_Action(float outputArray[MAX_CLIENTS][ADAM_NN_OUTPUT], char* data)
+void trap_Adam_Com_Array_To_Action(float outputArray[MAX_CLIENTS][ADAM_NN_OUTPUT],int* AdamAgentIndices, char* data)
 {
 	char* tokenHolder;
 	int clientNum, counter;
 	float valueHolder;
     
 	counter = 0;
+	clientNum = 0;
 	tokenHolder = strtok(data,",");
 	if(!strlen(tokenHolder))
 		return;
 
-	clientNum = atoi(tokenHolder);
 	while(tokenHolder != NULL)
-	{
-
-		tokenHolder = strtok(NULL,",");
-		
-		if(tokenHolder == NULL)
-			break;
-		
+	{ 
 		valueHolder = atof(tokenHolder);
-		
-		if(valueHolder < 0)
+	
+	
+		if(valueHolder < -2)
 		{
 			tokenHolder = strtok(NULL,",");
 			if(tokenHolder == NULL)
 				break;
-			clientNum = atoi(tokenHolder);
+			clientNum++;
 			counter = 0;
 			continue;
 		}
-
-		outputArray[clientNum][counter] = valueHolder;
+		outputArray[AdamAgentIndices[clientNum]][counter] = valueHolder;
 		counter++;
+		tokenHolder = strtok(NULL,",");
 	}
 }
 
@@ -3969,9 +3964,4 @@ void Adam_Com_SetupPipe(void)
 		break;
 	}
 
-}
-#include <math.h>
-float trap_power(float x, float y)
-{
-	return 1;
 }

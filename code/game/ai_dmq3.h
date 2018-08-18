@@ -182,21 +182,27 @@ void AdamBotIntermission(bot_state_t *bs);
 void AdamBotMapScripts(bot_state_t *bs);
 int  AdamFindEnemy(bot_state_t *bs, int currentEnemy);
 void AdamUpdateEnemy(bot_state_t *bs);
+int BotMoveInRandDir(bot_state_t* bs, vec3_t dirResult);
+void AdamVectors(bot_state_t* bs, vec3_t viewAngles,vec3_t f,vec3_t r,vec3_t b,vec3_t l);
+void AdamEnemyRadars(bot_state_t* bs);
 qboolean AdamOnTarget(bot_state_t* bs, vec3_t forward);
 // Based on NERO
 float AdamEnemyRadar(bot_state_t* bs, vec3_t direction, float fov);
 // Based Hierarchal thingy thesis
 float AdamWallSensor(bot_state_t* bs, vec3_t direction);
-int BotMoveInRandDir(bot_state_t* bs, vec3_t dirResult);
-void AdamVectors(bot_state_t* bs, vec3_t viewAngles,vec3_t f,vec3_t r,vec3_t b,vec3_t l);
+float AdamEntityVisible(int viewer, vec3_t eye, vec3_t viewangles, float fov, int ent);
+qboolean AdamFieldOfVision(float viewangles, float fov, float angles);
+qboolean AdamEnemyInRange(bot_state_t* bs);
 
 // ADAM DEFINITIONS
-#define FIRSTRADAR  M_PI/4
-#define SECONDRADAR M_PI/8
-#define THIRDRADAR  15.0f* (M_PI*2 / 360)
-#define FOURTHRADAR 5.0f* (M_PI*2 / 360)
-#define FIFTHRADAR  1.75f* (M_PI*2 / 360)
-#define SIXTHRADAR  0.75* (M_PI*2 / 360)
+#define RAD_TO_DEGREE   M_PI/180.0f
+#define HALFPIE         M_PI/2
+#define FIRSTRADAR      M_PI/4
+#define SECONDRADAR     M_PI/8
+#define THIRDRADAR      32.5f* RAD_TO_DEGREE
+#define FOURTHRADAR     17.5f* RAD_TO_DEGREE
+#define FIFTHRADAR      11.25f* RAD_TO_DEGREE
+#define SIXTHRADAR      5.0f* RAD_TO_DEGREE
 
 
 //ctf flags
