@@ -2848,7 +2848,6 @@ int Adam_Fight(bot_state_t* bs, float* neatData)
 	int clientNumber, moveType, enemy, moveSuccess;
 	float angleTurn,angleTurnRight, angleTurnLeft;
 	
-	
 	enemy = bs->enemy;
 	if (BotIsDead(bs)) 
 	{
@@ -2870,10 +2869,10 @@ int Adam_Fight(bot_state_t* bs, float* neatData)
 
 	clientNumber = bs->client;
 	// Update the enemy
-	BotSetupForMovement(bs);
+
 	// SETTING UP PIE-SLICES, ON TARGET AND RAYCASTERS 
 	AdamVectors(bs,viewAngles,forward,right,backward,left);
-
+	bs->isHit = bs->lasthealth > bs->inventory[INVENTORY_HEALTH]+1;
 	//If no enemies are within radar range, return to seek
 	if(!AdamEnemyInRange(bs))
 	{
@@ -2881,6 +2880,7 @@ int Adam_Fight(bot_state_t* bs, float* neatData)
 		return qfalse;
 	}
 	
+	BotSetupForMovement(bs);
 	/* 
 	====================================================
 	NEAT-ACTIONS
@@ -2906,21 +2906,21 @@ int Adam_Fight(bot_state_t* bs, float* neatData)
 		moveType = MOVE_CROUCH;
 	*/
 	VectorClear(moveDirection);
-	/*
+	
 	// MOVE FORWARD/BACKWARDS
-	if(neatData[2] > NN_THRESHOLD)
+	if(neatData[1] > NN_THRESHOLD)
 		VectorCopy(forward,moveDirection);
-	else if(neatData[2] < -NN_THRESHOLD)
+	else if(neatData[1] < -NN_THRESHOLD)
 		VectorCopy(backward,moveDirection);
 	
 	// MOVE RIGHT/LEFT
-	if(neatData[3]> NN_THRESHOLD)
+	if(neatData[2]> NN_THRESHOLD)
 		VectorAdd(left,moveDirection,moveDirection);
-	else if(neatData[3]< -NN_THRESHOLD)
+	else if(neatData[2]< -NN_THRESHOLD)
 		VectorAdd(right,moveDirection,moveDirection);
 	
 	trap_BotMoveInDirection(bs->ms,moveDirection,400,moveType);
-*/
+/*
 	if(neatData[1]> NN_THRESHOLD)
 	{
 		if(neatData[2] > neatData[1])
@@ -2941,18 +2941,21 @@ int Adam_Fight(bot_state_t* bs, float* neatData)
 	}
 	else if(neatData[4]>NN_THRESHOLD)
 		VectorAdd(left,moveDirection,moveDirection);
-	
+*/	
 	moveSuccess = trap_BotMoveInDirection(bs->ms,moveDirection,400,moveType);
 	
 	if(!moveSuccess)
 		bs->moveFaliures++;
 
-	
-	
 	angleTurn =0;
-	angleTurnLeft = 0;
+
+	if(neatData[3] > NN_THRESHOLD)
+		angleTurn = ((neatData[4]*2.0f)-1.0f)*25.0f;
+	else if(neatData[3]< -NN_THRESHOLD)
+		angleTurn = ((neatData[4]*2.0f)+1.0f)*25.0f;
+/*	angleTurnLeft = 0;
 	angleTurnRight = 0;
-	if(neatData[5]> NN_THRESHOLD)
+	/*if(neatData[5]> NN_THRESHOLD)
 	{
 		//The values are between [0.5;1]
 		angleTurnLeft = (neatData[4]*2.0f)-1.0f;
@@ -2967,7 +2970,7 @@ int Adam_Fight(bot_state_t* bs, float* neatData)
 		angleTurnRight *= -25.0f;
 		angleTurn+=angleTurnRight;
 	}
-
+*/
 	bs->ideal_viewangles[YAW]+= angleTurn;
 
 	/*

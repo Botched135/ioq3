@@ -1425,7 +1425,7 @@ ADAM AGENT
 // ADAM definitions
 #define ADAM_NN_FITNESS 5 // Need two more than actual fitness variables to pass around... And avoid crash
 #define ADAM_NN_INPUT 24
-#define ADAM_NN_OUTPUT 9
+#define ADAM_NN_OUTPUT 5
 
 int 	trap_Adam_Com_Open_Pipe			(char* fileName,int read);
 int 	trap_Adam_Com_Close_Pipe		(int fd);

@@ -3815,9 +3815,10 @@ void trap_Adam_Com_Get_PipeName(char* input)
 void trap_Adam_Com_Read_Neat(int file, char* outputArray,int adaptiveAgents)
 {
 	int returnVal;
-	int bufferSize = adaptiveAgents*38; // Actually 58, but one extra for safety
+	int bufferSize = adaptiveAgents*32; // Actually 58, but one extra for safety
 	returnVal = read(file,outputArray,bufferSize);
-	outputArray[304] = '\0';
+	outputArray[248] = '\0';
+	//printf("Outputarray: %s\n",outputArray);
 	if(returnVal < 0)
 	{
 		printf("NN_OUPUT READ ERROR! \n");
@@ -3930,8 +3931,7 @@ void trap_Adam_Com_Array_To_Action(float outputArray[MAX_CLIENTS][ADAM_NN_OUTPUT
 	{ 
 		valueHolder = atof(tokenHolder);
 	
-	
-		if(valueHolder < -2)
+		if(valueHolder < -2 || counter >=ADAM_NN_OUTPUT)
 		{
 			tokenHolder = strtok(NULL,",");
 			if(tokenHolder == NULL)
@@ -3940,6 +3940,9 @@ void trap_Adam_Com_Array_To_Action(float outputArray[MAX_CLIENTS][ADAM_NN_OUTPUT
 			counter = 0;
 			continue;
 		}
+		if(AdamAgentIndices[clientNum] > 0 || AdamAgentIndices[clientNum]>MAX_CLIENTS)
+			break;
+
 		outputArray[AdamAgentIndices[clientNum]][counter] = valueHolder;
 		counter++;
 		tokenHolder = strtok(NULL,",");

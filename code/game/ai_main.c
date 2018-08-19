@@ -1415,7 +1415,7 @@ int BotAIStartFrame(int time) {
 	#if ADAM_ACTIVE
 	// FOR ADAM
 	int adaptiveAgents,pipeIn,pipeOut,shotsHits;
-	char  neatOutput[305],pausing[2],  finish[2];
+	char  neatOutput[249],pausing[2], finish[2];
 	int AdamAgentIndices[8];
 	float neatInput[MAX_CLIENTS][ADAM_NN_INPUT];
 	// FINAL NUMBER IS DEFINED BY HOW MANY ACTIONS IT CAN TAKE
@@ -1507,9 +1507,9 @@ int BotAIStartFrame(int time) {
 					fitnessOutput[i][1] = botstates[i]->shotsTaken > 0 ? 
 										(10.0f*shotsHits)
 										/(botstates[i]->shotsTaken*10.0f) : 0;
-					fitnessOutput[i][1]*= (shotsHits*0.3f);
+					fitnessOutput[i][1]= (shotsHits*0.5f);
 					// Movement
-					fitnessOutput[i][2] = botstates[i]->moveFaliures*0.0016f;//botstates[i]->num_kills;
+					fitnessOutput[i][2] = botstates[i]->moveFaliures*0.005f;//botstates[i]->num_kills;
 					// Deaths
 					fitnessOutput[i][3] = 0.0f;//(botstates[i]->timesHit*0.05f);
 					botstates[i]->num_deaths = 0;
@@ -1672,7 +1672,6 @@ int BotAIStartFrame(int time) {
 			trap_Adam_Com_Write_Neat(pipeOut,neatInput,adaptiveAgents);
 			trap_Adam_Com_Close_Pipe(pipeOut);
 
-	
 			// READ DATA
 			pipeIn = trap_Adam_Com_Open_Pipe(pipeName,1);
 			trap_Adam_Com_Read_Neat(pipeIn,neatOutput,adaptiveAgents);
@@ -1685,6 +1684,7 @@ int BotAIStartFrame(int time) {
 				//G_Printf("After conversion to actions\n");
 				//G_Printf("First:%.2f, Second: %.2f, Third: %.2f\n",neatActions[0][0],neatActions[1][0],neatActions[2][0]);
 			}
+				
 		}
 	#endif
 	// execute scheduled bot AI
@@ -1981,8 +1981,7 @@ void BotStateToNEAT(float neatArray[MAX_CLIENTS][ADAM_NN_INPUT], bot_state_t **b
 				neatArray[i][22] = health/200;
 
 			// TAKING DMG
-			neatArray[i][23] = bs[i]->lasthealth > health+1 ? 1 : 0;
-
+			neatArray[i][23] = bs[i]->isHit;
 			// Self Weapon
 		/*	neatArray[i][3] = bs[i]->weaponnum/9;
 
@@ -2302,6 +2301,10 @@ int GetAdaptiveAgents(bot_state_t** bs, int* AdamIndices)
 {
 	int amount,i;
 	amount = 0;
+	for(i = 0;i<8;i++)
+	{
+		AdamIndices[i] =-1;
+	}
 	for(i = 0; i < MAX_CLIENTS;i++)
 	{
 		if(bs[i]->adamFlag & ADAM_ADAPTIVE)

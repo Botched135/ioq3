@@ -301,6 +301,7 @@ typedef struct bot_state_s
 	int lastGenerationShotHit;
 	int timesHit;
 	int moveFaliures;
+	int isHit;
 	float isOnTarget;
 	float enemyRadars[12][3];						// from view direction and in clockwise direction. Contains YAWangle, fov, value
 	float wallRaycast[8];
