@@ -5264,6 +5264,10 @@ void BotDeathmatchAI(bot_state_t *bs, float thinktime) {
 			bs->shotsTaken = 0;
 			bs->timesHit = 0;
 			bs->moveFaliures = 0;
+			bs->framesOnTarget = 0;
+			bs->lastTarget = -1;
+			bs->frameInBattle =0;
+			VectorClear(bs->lastMove);
 			G_Printf("ADAPTIVE AGENT INITIALIZED\n");
 			return;
 		}
@@ -5747,7 +5751,6 @@ void AdamVectors(bot_state_t* bs, vec3_t viewAngles,vec3_t f,vec3_t r,vec3_t b,v
 	dirVec[1] = cosPit*sinYaw;
 	dirVec[2] = -sinPit;
 
-	bs->isOnTarget = AdamOnTarget(bs,dirVec) ? 1 : 0;
 	/*
 	=========================================================
 	DIRECTLY FORWARD [1,0,0]
@@ -5867,54 +5870,58 @@ void AdamVectors(bot_state_t* bs, vec3_t viewAngles,vec3_t f,vec3_t r,vec3_t b,v
 	// 15 Degrees
 
 	//bs->enemyRadars[6] = AdamEnemyRadar(bs,dirVec,15.0f);
-	bs->enemyRadars[6][0] = viewYaw+17.5f; 
-	bs->enemyRadars[6][1] = 15.0f;
+	bs->enemyRadars[6][0] = viewYaw+19.50f; 
+	bs->enemyRadars[6][1] = 11.0f;
 	bs->enemyRadars[6][2] = 0.0f;
 
 	//bs->enemyRadars[7] = AdamEnemyRadar(bs,dirVec,15.0f);
-	bs->enemyRadars[7][0] = viewYaw+342.5f; 
-	bs->enemyRadars[7][1] = 15.0f;
+	bs->enemyRadars[7][0] = viewYaw+340.50f; 
+	bs->enemyRadars[7][1] = 11.00f;
 	bs->enemyRadars[7][2] = 0.0f;
 
 
 	// Two 7.5 degrees angle
 
 	//bs->enemyRadars[8] = AdamEnemyRadar(bs,dirVec,7.5f);
-	bs->enemyRadars[8][0] = viewYaw+6.25f; 
-	bs->enemyRadars[8][1] = 7.5f;
+	bs->enemyRadars[8][0] = viewYaw+10.75f; 
+	bs->enemyRadars[8][1] = 6.5f;
 	bs->enemyRadars[8][2] = 0.0f;
 
 
 	//bs->enemyRadars[9] = AdamEnemyRadar(bs,dirVec,7.5f);
-	bs->enemyRadars[9][0] = viewYaw+353.75f; 
-	bs->enemyRadars[9][1] = 7.5f;	
+	bs->enemyRadars[9][0] = viewYaw+349.25f; 
+	bs->enemyRadars[9][1] = 6.5f;	
 	bs->enemyRadars[9][2] = 0.0f;
 	// The two smallest angles degrees angle (2.5 degrees)
 
 
 	//bs->enemyRadars[10] = AdamEnemyRadar(bs,dirVec,2.5f);
-	bs->enemyRadars[10][0] = viewYaw+1.25f; 
-	bs->enemyRadars[10][1] = 2.5f;
+	bs->enemyRadars[10][0] = viewYaw+5.75f; 
+	bs->enemyRadars[10][1] = 4.5f;
 	bs->enemyRadars[10][2] = 0.0f;
 
 
 	//bs->enemyRadars[11] = AdamEnemyRadar(bs,dirVec,2.5f);
-	bs->enemyRadars[11][0] = viewYaw+358.75f; 
-	bs->enemyRadars[11][1] = 2.5f;
+	bs->enemyRadars[11][0] = viewYaw+354.25f; 
+	bs->enemyRadars[11][1] = 4.5f;
 	bs->enemyRadars[11][2] = 0.0f;
 
-	for(i = 0;i<12;i++)
+	bs->enemyRadars[12][0] = viewYaw;
+	bs->enemyRadars[12][1] = 6.0f;
+	bs->enemyRadars[12][2] = 0.0f;
+
+	for(i = 0;i<13;i++)
 	{
 		if(bs->enemyRadars[i][0] > 360.0f)
 			bs->enemyRadars[i][0]-=360.0f;
 	}
 
 	AdamEnemyRadars(bs);
-	//G_Printf("Viewangle YAW: %f\n",bs->viewangles[YAW]);
-	/*G_Printf("Radar values:[%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f]\n",
+	//G_Printf("EnemyRadar front: %f\n",bs->enemyRadars[12][2]);
+	/*G_Printf("Radar values:[%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f]\n",
 	bs->enemyRadars[0][2],bs->enemyRadars[1][2],bs->enemyRadars[2][2],bs->enemyRadars[3][2],bs->enemyRadars[4][2]
 	,bs->enemyRadars[5][2],bs->enemyRadars[6][2],bs->enemyRadars[7][2],bs->enemyRadars[8][2],bs->enemyRadars[9][2]
-	,bs->enemyRadars[10][2],bs->enemyRadars[11][2]);*/
+	,bs->enemyRadars[10][2],bs->enemyRadars[11][2],bs->enemyRadars[12][2]);*/
 }
 // Only called when there is a bot in the front rangefinder.
 qboolean AdamOnTarget(bot_state_t* bs, vec3_t forward)
@@ -5930,15 +5937,20 @@ qboolean AdamOnTarget(bot_state_t* bs, vec3_t forward)
 	
 	BotAI_Trace(&trace,eye,NULL,NULL,endPoint,bs->entitynum,MASK_SHOT);
 	//Need to check if it hits another enemy 
-	if (trace.ent < 1000) 
+	if (trace.ent < MAX_CLIENTS)
+	{		
+		if(bs->lastTarget !=  trace.ent)
+			bs->framesOnTarget*=0.5;
+		bs->lastTarget = trace.ent;
+		bs->framesOnTarget++;
 		return qtrue;
-
+	}
 	return qfalse;
 }
 void AdamEnemyRadars(bot_state_t* bs)
 {
 	int i, j,clientNum, entityNum, contentMask;
-	float enemyRange, enemyYaw;
+	float enemyRange, enemyYaw, fractionEnemyRange;
 	vec3_t origin,dir,enemyAngle,eye;
 	aas_entityinfo_t entinfo;
 	bsp_trace_t trace;
@@ -5973,12 +5985,14 @@ void AdamEnemyRadars(bot_state_t* bs)
 		
 		vectoangles(dir, enemyAngle);
 		enemyYaw = AngleMod(enemyAngle[YAW]);
-		for(j=0;j<12;j++)
+		for(j=0;j<13;j++)
 		{	
-			//G_Printf("Radar direction: %f \t fov: %f \t enemyYaw: %f\n",bs->enemyRadars[j][1], bs->enemyRadars[j][2], enemyYaw);
+			//G_Printf("Radar direction: %f \t fov: %f \t enemyYaw: %f\n",bs->enemyRadars[j][0], bs->enemyRadars[j][1], enemyYaw);
 			if(!AdamFieldOfVision(bs->enemyRadars[j][0], bs->enemyRadars[j][1], enemyYaw)) continue;
 			
-			bs->enemyRadars[j][2]+=(ADAM_SIGHT_SQUARED-enemyRange)/(ADAM_SIGHT_SQUARED*2.25f);
+			fractionEnemyRange=enemyRange/(ADAM_SIGHT_SQUARED*1.0f);
+			if(fractionEnemyRange > bs->enemyRadars[j][2])
+				bs->enemyRadars[j][2]=fractionEnemyRange;
 			break;
 		}
 	}
@@ -6174,7 +6188,7 @@ qboolean AdamEnemyInRange(bot_state_t* bs)
 {
 	int i;
 
-	for(i = 0; i< 12;i++)
+	for(i = 0; i< 13;i++)
 	{
 		if(bs->enemyRadars[i][2] >0.0f)
 			return qtrue;

@@ -2638,7 +2638,8 @@ int AINode_Battle_NBG(bot_state_t *bs) {
 
 void AdamEnter_Seek(bot_state_t* bs)
 {
-	bs->adamNode = Adam_Seek;	
+	bs->adamNode = Adam_Seek;
+	bs->lastTarget = -1;
 }
 int Adam_Seek(bot_state_t* bs, float* neatData)
 {
@@ -2740,7 +2741,7 @@ int Adam_Seek(bot_state_t* bs, float* neatData)
 		}
 		bs->ideal_viewangles[2]*=0.5;
 	}
-
+	bs->combatStatus = 0;
 	return qtrue;
 
 }
@@ -2832,12 +2833,13 @@ int Adam_NearbySeek(bot_state_t* bs, float* neatData)
 		AdamEnter_Fight(bs);
 		return qfalse;
 	}
-		
+	bs->combatStatus = 0;
 	return qtrue;
 }
 void AdamEnter_Fight(bot_state_t* bs)
 {
 	bs->adamNode = Adam_Fight;
+	bs->combatStatus = 1;
 
 }
 int Adam_Fight(bot_state_t* bs, float* neatData)
@@ -2855,27 +2857,29 @@ int Adam_Fight(bot_state_t* bs, float* neatData)
 		return qfalse;
 	}
 	if (enemy < 0) {
+		bs->combatStatus = 2;
 		AdamEnter_Seek(bs);
 		return qfalse;
 	}
 	
 	BotEntityInfo(enemy, &entinfo);
-	if (EntityIsDead(&entinfo)) {
+	if (EntityIsDead(&entinfo)) 
+	{
+		bs->combatStatus = 3;
 		AdamEnter_Seek(bs);
 		return qfalse;
 	}
-	VectorCopy(bs->viewangles,viewAngles);
-
 
 	clientNumber = bs->client;
 	// Update the enemy
 
 	// SETTING UP PIE-SLICES, ON TARGET AND RAYCASTERS 
-	AdamVectors(bs,viewAngles,forward,right,backward,left);
-	bs->isHit = bs->lasthealth > bs->inventory[INVENTORY_HEALTH]+1;
+	
+	//bs->isHit = bs->lasthealth > bs->inventory[INVENTORY_HEALTH]+1;
 	//If no enemies are within radar range, return to seek
 	if(!AdamEnemyInRange(bs))
 	{
+		bs->combatStatus = 2;
 		AdamEnter_Seek(bs);
 		return qfalse;
 	}
@@ -2887,8 +2891,8 @@ int Adam_Fight(bot_state_t* bs, float* neatData)
 	====================================================
 	*/
 	
-	//G_Printf("The neat data: SHOOT: %.3f, JUMP: %.3f, CROUCH: %.3f, MOVE [%.3f,%.3f,%.3f,%.3f], turn right %.3f, turn left: %.3f\n",neatData[0],neatData[1],neatData[2]
-	//,neatData[3],neatData[4],neatData[5],neatData[6],neatData[7],neatData[8]);
+	/*G_Printf("The neat data for bot %d: SHOOT: %.3f,MOVE X [%.3f], MOVE Y [%.3f], TURN: %.3f\n",bs->client,neatData[0],neatData[1],neatData[2]
+	,neatData[3]);*/
 	VectorClear(nullVector);
 	// SHOOT
 	if(neatData[0] > NN_THRESHOLD)
@@ -2897,7 +2901,7 @@ int Adam_Fight(bot_state_t* bs, float* neatData)
 		bs->flags ^= BFL_ATTACKED;
 		bs->shotsTaken++;
 	}
-		
+	
 	moveType = MOVE_WALK;
 	// JUMP or crouch 
 	/*if(neatData[1]> NN_THRESHOLD)
@@ -2913,13 +2917,12 @@ int Adam_Fight(bot_state_t* bs, float* neatData)
 	else if(neatData[1] < -NN_THRESHOLD)
 		VectorCopy(backward,moveDirection);
 	
-	// MOVE RIGHT/LEFT
+	/*// MOVE RIGHT/LEFT
 	if(neatData[2]> NN_THRESHOLD)
 		VectorAdd(left,moveDirection,moveDirection);
 	else if(neatData[2]< -NN_THRESHOLD)
 		VectorAdd(right,moveDirection,moveDirection);
-	
-	trap_BotMoveInDirection(bs->ms,moveDirection,400,moveType);
+	*/
 /*
 	if(neatData[1]> NN_THRESHOLD)
 	{
@@ -2942,17 +2945,19 @@ int Adam_Fight(bot_state_t* bs, float* neatData)
 	else if(neatData[4]>NN_THRESHOLD)
 		VectorAdd(left,moveDirection,moveDirection);
 */	
-	moveSuccess = trap_BotMoveInDirection(bs->ms,moveDirection,400,moveType);
+/*	moveSuccess = trap_BotMoveInDirection(bs->ms,moveDirection,400,moveType);
 	
-	if(!moveSuccess)
+	if(!moveSuccess) //|| (VectorCompare(moveDirection,nullVector) && VectorCompare(bs->lastMove,nullVector)))
 		bs->moveFaliures++;
 
-	angleTurn =0;
+	VectorCopy(moveDirection,bs->lastMove);*/
 
-	if(neatData[3] > NN_THRESHOLD)
-		angleTurn = ((neatData[4]*2.0f)-1.0f)*25.0f;
-	else if(neatData[3]< -NN_THRESHOLD)
-		angleTurn = ((neatData[4]*2.0f)+1.0f)*25.0f;
+	angleTurn =0.0f;
+
+	if(neatData[2] > NN_THRESHOLD)
+		angleTurn = (neatData[2]*2.0f-1.0f)*25.0f;
+	else if(neatData[2]< -NN_THRESHOLD)
+		angleTurn = (neatData[2]*2.0f+1.0f)*25.0f;
 /*	angleTurnLeft = 0;
 	angleTurnRight = 0;
 	/*if(neatData[5]> NN_THRESHOLD)
@@ -3017,6 +3022,7 @@ int Adam_Fight(bot_state_t* bs, float* neatData)
 	// Look for better enemy, for next frame 
 	Add_Ammo(&g_entities[bs->entitynum],WEAPONINDEX_MACHINEGUN,100);
 
+	bs->frameInBattle++;
 	return qtrue;
 }
 void AdamEnter_Respawn(bot_state_t* bs)
@@ -3030,7 +3036,8 @@ void AdamEnter_Respawn(bot_state_t* bs)
 	//if the bot wants to chat
 	bs->respawn_time = FloatTime();
 	bs->respawnchat_time = 0;
-
+	
+	bs->combatStatus = 3;
 	//set respawn state
 	bs->respawn_wait = qfalse;
 	bs->adamNode = Adam_Respawn;
@@ -3083,9 +3090,17 @@ int Adam_Debug(bot_state_t* bs, float* neatData)
 		AdamEnter_Respawn(bs);
 		return qfalse;
 	}
-	BotSetupForMovement(bs);
 	AdamVectors(bs,bs->viewangles,front,right,back,left);
-	AdamOnTarget(bs,front);
+	if(AdamOnTarget(bs,front))
+	{
+		trap_EA_Attack(bs->client);
+		bs->flags ^= BFL_ATTACKED;
+		bs->shotsTaken++;
+	}
+
+	G_Printf("Weapon state: %d \n",bs->cur_ps.weaponstate);
+	G_Printf("Shots hit %d\t shots taken: %d\n",bs->cur_ps.persistant[PERS_HITS],bs->shotsTaken);
+	Add_Ammo(&g_entities[bs->entitynum],WEAPONINDEX_MACHINEGUN,100);
 	return qtrue;
 
 }

@@ -3817,7 +3817,7 @@ void trap_Adam_Com_Read_Neat(int file, char* outputArray,int adaptiveAgents)
 	int returnVal;
 	int bufferSize = adaptiveAgents*32; // Actually 58, but one extra for safety
 	returnVal = read(file,outputArray,bufferSize);
-	outputArray[248] = '\0';
+	outputArray[384] = '\0';
 	//printf("Outputarray: %s\n",outputArray);
 	if(returnVal < 0)
 	{
@@ -3845,20 +3845,25 @@ void trap_Adam_Com_Write_Neat(int file, float neatArray[MAX_CLIENTS][ADAM_NN_INP
 {
 	int i, counter, returnVal;
 	char *writeArray;
-	char temp[160];
+	char temp[116];
 	counter = 0;
-	writeArray = calloc(1280,sizeof(char));
+	writeArray = calloc(1160,sizeof(char));
 	for(i = 0; i<MAX_CLIENTS;i++)
 	{
 		if(neatArray[i][0] == 2)
 		{
-			snprintf(temp,157,
-			"%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,1:", 
+			/*snprintf(temp,157,
+			"%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f:", 
 			neatArray[i][1],neatArray[i][2],neatArray[i][3],neatArray[i][4],neatArray[i][5],neatArray[i][6],
 			neatArray[i][7],neatArray[i][8],neatArray[i][9],neatArray[i][10],neatArray[i][11],neatArray[i][12],
 			neatArray[i][13],neatArray[i][14],neatArray[i][15],neatArray[i][16],neatArray[i][17],neatArray[i][18],
-			neatArray[i][19],neatArray[i][20],neatArray[i][21],neatArray[i][23]);
-			temp[157] = '\0';
+			neatArray[i][19],neatArray[i][20],neatArray[i][21],neatArray[i][22]);*/
+			snprintf(temp,115,
+			"%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.0f:", 
+			neatArray[i][1],neatArray[i][2],neatArray[i][9],neatArray[i][10],neatArray[i][11],neatArray[i][12],
+			neatArray[i][13],neatArray[i][14],neatArray[i][15],neatArray[i][16],neatArray[i][17],neatArray[i][18],
+			neatArray[i][19],neatArray[i][20],neatArray[i][21],neatArray[i][22],neatArray[i][23]);
+			temp[115] = '\0';
 			strcat(writeArray,temp);
 			counter++;
 			
@@ -3881,15 +3886,15 @@ void trap_Adam_Com_Write_Fitness(int file, float fitnessArray[MAX_CLIENTS][ADAM_
 {
 	int i,counter, returnVal;
 	char *writeArray;
-	char temp[26];
+	char temp[30];
 	counter = 0;
-	writeArray = calloc(220, sizeof(char));
+	writeArray = calloc(315, sizeof(char));
 	for(i = 0; i<MAX_CLIENTS;i++)
 	{
 		if(fitnessArray[i][0] ==2)
 		{
-			snprintf(temp,25,"%.4f,%.4f,%.4f:",fitnessArray[i][1],fitnessArray[i][2],fitnessArray[i][3]);
-			temp[25] = '\0';
+			snprintf(temp,29,"%.3f,%.3f,%.4f:",fitnessArray[i][1],fitnessArray[i][2],fitnessArray[i][3]);
+			temp[29] = '\0';
 			strcat(writeArray,temp);
 			counter++;
 		}
@@ -3940,7 +3945,7 @@ void trap_Adam_Com_Array_To_Action(float outputArray[MAX_CLIENTS][ADAM_NN_OUTPUT
 			counter = 0;
 			continue;
 		}
-		if(AdamAgentIndices[clientNum] > 0 || AdamAgentIndices[clientNum]>MAX_CLIENTS)
+		if(AdamAgentIndices[clientNum] < 0 || AdamAgentIndices[clientNum]>MAX_CLIENTS)
 			break;
 
 		outputArray[AdamAgentIndices[clientNum]][counter] = valueHolder;

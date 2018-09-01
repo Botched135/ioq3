@@ -94,7 +94,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define ADAM_MIN_DISTANCE	1140000000
 
 // ADAM Radar values
-#define ADAM_SIGHT_DISTANCE 750.0f // Squared in order to avoid squareRoot
+#define ADAM_SIGHT_DISTANCE 900.0f // Squared in order to avoid squareRoot
 #define ADAM_SIGHT_SQUARED	ADAM_SIGHT_DISTANCE*ADAM_SIGHT_DISTANCE
 #define ADAM_DIST_SCALAR	0.02f // method of ad-hoc
 // ADAM flag
@@ -105,8 +105,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define ADAM_ENEMYFIRE		0x00000010
 
 // ADAM Training
-#define ADAM_TRAINING		1
 #define ADAM_ACTIVE			1
+#define ADAM_TRAINING		1
 #define ADAM_DEBUG			0
 
 //check points
@@ -297,14 +297,18 @@ typedef struct bot_state_s
 	int (*adamNode)(struct bot_state_s* bs,float* neatData);
 
 	int squaredEnemyDis;
+	int frameInBattle;
 	int shotsTaken;
 	int lastGenerationShotHit;
 	int timesHit;
 	int moveFaliures;
-	int isHit;
+	int combatStatus;
+	int framesOnTarget;
+	int lastTarget;
 	float isOnTarget;
-	float enemyRadars[12][3];						// from view direction and in clockwise direction. Contains YAWangle, fov, value
+	float enemyRadars[13][3];						// from view direction and in clockwise direction. Contains YAWangle, fov, value
 	float wallRaycast[8];
+	vec3_t lastMove;
 	#if ADAM_DEBUG
 	float debugTime;
 	#endif

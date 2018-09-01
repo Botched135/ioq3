@@ -1415,13 +1415,14 @@ int BotAIStartFrame(int time) {
 	#if ADAM_ACTIVE
 	// FOR ADAM
 	int adaptiveAgents,pipeIn,pipeOut,shotsHits;
-	char  neatOutput[249],pausing[2], finish[2];
-	int AdamAgentIndices[8];
+	char  neatOutput[385],pausing[2], finish[2];
+	int AdamAgentIndices[ADAM_AGENTS];
 	float neatInput[MAX_CLIENTS][ADAM_NN_INPUT];
 	// FINAL NUMBER IS DEFINED BY HOW MANY ACTIONS IT CAN TAKE
 	float fitnessOutput[MAX_CLIENTS][ADAM_NN_FITNESS];
 	#endif
 	float neatActions[MAX_CLIENTS][ADAM_NN_OUTPUT];
+	float tempBattleFrames;
 	
 	
 	G_CheckBotSpawn();
@@ -1435,7 +1436,7 @@ int BotAIStartFrame(int time) {
 				trap_Adam_Com_Get_PipeName(pipeName);
 				G_Printf("Pipename in AI_MAIN: %s\n",pipeName);
 			}
-
+			
 			// Informing trainer that this server is ready
 			pipeOut = trap_Adam_Com_Open_Pipe(pipeName,0);
 			trap_Adam_Com_Write_Ready(pipeOut);
@@ -1501,28 +1502,40 @@ int BotAIStartFrame(int time) {
 					// Amount of kills
 					// Avoid dying 
 					// Gather fitness values
+
+					tempBattleFrames = botstates[i]->frameInBattle > 0 ? botstates[i]->frameInBattle/300.0f : 1.0f;
 					shotsHits = botstates[i]->lasthitcount-botstates[i]->lastGenerationShotHit;
 					fitnessOutput[i][0] = 2;
 					// Accuracy
 					fitnessOutput[i][1] = botstates[i]->shotsTaken > 0 ? 
-										(10.0f*shotsHits)
-										/(botstates[i]->shotsTaken*10.0f) : 0;
-					fitnessOutput[i][1]= (shotsHits*0.5f);
+										(1.0f*shotsHits)
+										/(botstates[i]->shotsTaken*1.0f) : 0;
+					
+					fitnessOutput[i][1]= (shotsHits*0.1f);
+				
+
 					// Movement
-					fitnessOutput[i][2] = botstates[i]->moveFaliures*0.005f;//botstates[i]->num_kills;
+					//G_Printf("frames on Target: %d\n",botstates[i]->framesOnTarget);
+					fitnessOutput[i][2] =botstates[i]->framesOnTarget*0.05f;// 0.0f;//;//botstates[i]->num_kills;
 					// Deaths
-					fitnessOutput[i][3] = 0.0f;//(botstates[i]->timesHit*0.05f);
+					fitnessOutput[i][3] = 0.0f;//botstates[i]->moveFaliures*0.005f;
 					botstates[i]->num_deaths = 0;
 					botstates[i]->num_kills = 0;
 					botstates[i]->timesHit = 0;
+					botstates[i]->framesOnTarget =0;
+					botstates[i]->lastTarget =-1;
 					botstates[i]->lastGenerationShotHit = botstates[i]->cur_ps.persistant[PERS_HITS];
 					//trap_EA_Respawn(i);
 					botstates[i]->adamFlag = ADAM_ADAPTIVE;
 					botstates[i]->shotsTaken = 0;
 					botstates[i]->moveFaliures =0;
+					botstates[i]->frameInBattle = 0;
+					g_entities[botstates[i]->entitynum].health = 0;
+					VectorClear(botstates[i]->lastMove);
+					AdamEnter_Respawn(botstates[i]);
 					
 				}
-				g_entities[botstates[i]->entitynum].health = 200;
+				
 			#endif
 			trap_BotUserCommand(botstates[i]->client, &botstates[i]->lastucmd);
 		}
@@ -1954,11 +1967,14 @@ int BotAdamAgent(int clientNum,float thinktime, float *neatInput)
 // reference to the bots and their neural networks
 void BotStateToNEAT(float neatArray[MAX_CLIENTS][ADAM_NN_INPUT], bot_state_t **bs)
 {
-	int i,j,health;
+	vec3_t forward, right, backward,left;
+	int i,j;
+
 	for(i = 0; i < MAX_CLIENTS;i++)
 	{
 		if(bs[i]->adamFlag & ADAM_ADAPTIVE)
 		{
+			AdamVectors(bs[i],bs[i]->viewangles,forward,right,backward,left);
 			//Initialization and NN connection
 			neatArray[i][0] = 2;
 
@@ -1967,13 +1983,14 @@ void BotStateToNEAT(float neatArray[MAX_CLIENTS][ADAM_NN_INPUT], bot_state_t **b
 				neatArray[i][j+1] = bs[i]->wallRaycast[j];
 			
 			// ENEMY RADAR
-			for(j=0;j<12;j++)
+			for(j=0;j<13;j++)
 				neatArray[i][j+9] = bs[i]->enemyRadars[j][2];
 			
 			// IS ON TARGET
-			neatArray[i][21] = bs[i]->isOnTarget;
+			neatArray[i][22] = AdamOnTarget(bs[i],forward) ? 1.0f : 0.0f;
 
-			health = bs[i]->lastframe_health;
+			neatArray[i][23] = bs[i]->combatStatus;
+		/*	health = bs[i]->lastframe_health;
 			// Self HP
 			if(health < 0)
 				neatArray[i][22] = 0;
@@ -1981,7 +1998,7 @@ void BotStateToNEAT(float neatArray[MAX_CLIENTS][ADAM_NN_INPUT], bot_state_t **b
 				neatArray[i][22] = health/200;
 
 			// TAKING DMG
-			neatArray[i][23] = bs[i]->isHit;
+			neatArray[i][23] = bs[i]->isHit;*/
 			// Self Weapon
 		/*	neatArray[i][3] = bs[i]->weaponnum/9;
 
