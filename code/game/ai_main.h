@@ -89,14 +89,20 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //
 #define MAX_PROXMINES				64
 
+// Adaptive Changes (non-adam)
+#define ADAPTATION
+//#define ADAPT_DATA
+#define ADAPT_INTERVAL				10
+
 // ADAM distances
 #define ADAM_MAX_DISTANCE 	1220000000
 #define ADAM_MIN_DISTANCE	1140000000
 
 // ADAM Radar values
-#define ADAM_SIGHT_DISTANCE 900.0f // Squared in order to avoid squareRoot
+#define ADAM_SIGHT_DISTANCE 1000.0f // Squared in order to avoid squareRoot
 #define ADAM_SIGHT_SQUARED	ADAM_SIGHT_DISTANCE*ADAM_SIGHT_DISTANCE
 #define ADAM_DIST_SCALAR	0.02f // method of ad-hoc
+#define ADAM_RADAR_AMOUNT	9
 // ADAM flag
 #define ADAM_ADAPTIVE		0x00000001
 #define ADAM_RESET 			0x00000002
@@ -105,9 +111,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define ADAM_ENEMYFIRE		0x00000010
 
 // ADAM Training
-#define ADAM_ACTIVE			1
-#define ADAM_TRAINING		1
-#define ADAM_DEBUG			0
+//#define ADAM_ACTIVE
+//#define ADAM_TRAINING
+#define ADAM_DEBUG			
 
 //check points
 typedef struct bot_waypoint_s
@@ -296,6 +302,7 @@ typedef struct bot_state_s
 	int adamFlag;
 	int (*adamNode)(struct bot_state_s* bs,float* neatData);
 
+	#if defined(ADAM_ACTIVE) || defined(ADAM_DEBUG)
 	int squaredEnemyDis;
 	int frameInBattle;
 	int shotsTaken;
@@ -304,13 +311,17 @@ typedef struct bot_state_s
 	int moveFaliures;
 	int combatStatus;
 	int framesOnTarget;
-	int lastTarget;
 	float isOnTarget;
-	float enemyRadars[13][3];						// from view direction and in clockwise direction. Contains YAWangle, fov, value
+	float enemyRadars[ADAM_RADAR_AMOUNT][4];	// from view direction and set towards back. Contains YAWangle, fov, value
 	float wallRaycast[8];
+	float fitnessScore;
 	vec3_t lastMove;
-	#if ADAM_DEBUG
+	#endif
+	#if defined(ADAM_DEBUG) || defined(ADAPTATION)
 	float debugTime;
+	#endif
+	#ifdef ADAPTATION
+	int skillAdaptation;
 	#endif
 	
 } bot_state_t;
@@ -335,6 +346,7 @@ int		BotAI_GetSnapshotEntity( int clientNum, int sequence, entityState_t *state 
 int		BotTeamLeader(bot_state_t *bs);
 
 // ADAM functions
+void AdaptiveUpdate(bot_state_t* bs, float skill);
 int BotAdamAgent(int clientNum, float thinktime,float *neatInput); 
 void BotStateToNEAT(float neatArray[MAX_CLIENTS][ADAM_NN_INPUT], bot_state_t **bs);
 void AdamBotChatSetup(int client, bot_state_t *bs);

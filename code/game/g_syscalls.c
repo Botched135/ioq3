@@ -821,6 +821,11 @@ void trap_Adam_Com_Read_Finish(int file, char* input)
 	syscall(ADAM_COM_READ_FINISH,file,input);
 }
 
+void trap_Adam_Com_Read_Adaptation(int file, int* adaptationVal)
+{
+	syscall(ADAM_COM_READ_ADAPTATION,file,adaptationVal);
+}
+
 void trap_Adam_Com_Write_Neat(int file, float neatArray[MAX_CLIENTS][ADAM_NN_INPUT], int adaptiveAgents)
 {
 	syscall(ADAM_COM_WRITE_NEAT,file,neatArray,adaptiveAgents);

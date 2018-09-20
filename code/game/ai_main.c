@@ -978,7 +978,7 @@ BotAI
 int BotAI(int client, float thinktime) {
 	bot_state_t *bs;
 	char buf[1024], *args;
-	int j;
+	int j, skillAdaptation, currentSkill;
 
 	trap_EA_ResetInput(client);
 	//
@@ -1058,6 +1058,26 @@ int BotAI(int client, float thinktime) {
 	bs->areanum = BotPointAreaNum(bs->origin);
 	//the real AI
 	BotDeathmatchAI(bs, thinktime);
+	
+	#ifdef ADAPTATION
+	if(bs->debugTime < FloatTime() && bs->setupcount <= 0)
+	{
+		currentSkill = bs->settings.skill;
+		skillAdaptation = currentSkill+bs->skillAdaptation;
+		if(skillAdaptation > 5 || skillAdaptation < 1)
+			skillAdaptation = currentSkill;
+		
+		if(skillAdaptation != currentSkill)
+		{
+			G_Printf("Debug time: %f\n",bs->debugTime);
+			AdaptiveUpdate(bs,skillAdaptation);// whatever skill needed
+		}
+		bs->debugTime = FloatTime()+ADAPT_INTERVAL;
+		G_Printf("Debug time: %f\n",bs->debugTime);
+		
+	}
+	
+	#endif
 	//set the weapon selection every AI frame
 	//trap_EA_SelectWeapon(bs->client, bs->weaponnum);
 	trap_EA_SelectWeapon(bs->client, WP_MACHINEGUN);
@@ -1325,16 +1345,18 @@ when the level is changed
 ==============
 */
 void BotResetState(bot_state_t *bs) {
-	int client, entitynum, inuse;
+	int client, entitynum, inuse, adamFlag;
 	int movestate, goalstate, chatstate, weaponstate;
 	bot_settings_t settings;
 	int character;
 	playerState_t ps;					//current player state
 	float entergame_time;
 
+	
 	//save some things that should not be reset here
 	memcpy(&settings, &bs->settings, sizeof(bot_settings_t));
 	memcpy(&ps, &bs->cur_ps, sizeof(playerState_t));
+
 	inuse = bs->inuse;
 	client = bs->client;
 	entitynum = bs->entitynum;
@@ -1343,7 +1365,8 @@ void BotResetState(bot_state_t *bs) {
 	goalstate = bs->gs;
 	chatstate = bs->cs;
 	weaponstate = bs->ws;
-	entergame_time = bs->entergame_time;	
+	entergame_time = bs->entergame_time;
+	adamFlag = bs->adamFlag;	
 	
 	//free checkpoints and patrol points
 	BotFreeWaypoints(bs->checkpoints);
@@ -1362,6 +1385,63 @@ void BotResetState(bot_state_t *bs) {
 	bs->entitynum = entitynum;
 	bs->character = character;
 	bs->entergame_time = entergame_time;
+	bs->adamFlag = adamFlag;
+	//reset several states
+	if (bs->ms) trap_BotResetMoveState(bs->ms);
+	if (bs->gs) trap_BotResetGoalState(bs->gs);
+	if (bs->ws) trap_BotResetWeaponState(bs->ws);
+	if (bs->gs) trap_BotResetAvoidGoals(bs->gs);
+	if (bs->ms) trap_BotResetAvoidReach(bs->ms);
+}
+
+void AdaptiveUpdate(bot_state_t* bs, float skill)
+{
+	int client, entitynum, inuse, adamFlag, enemy;
+	int movestate, goalstate, chatstate, weaponstate;
+	bot_settings_t settings;
+	int character;
+	playerState_t ps;					//current player state
+	float entergame_time;
+
+	
+	//save some things that should not be reset here
+	memcpy(&settings, &bs->settings, sizeof(bot_settings_t));
+	memcpy(&ps, &bs->cur_ps, sizeof(playerState_t));
+	
+	G_Printf("Bot previous skill: %f\n",settings.skill);
+	settings.skill = skill;
+	enemy = bs->enemy;
+	inuse = bs->inuse;
+	client = bs->client;
+	entitynum = bs->entitynum;
+	character = trap_BotLoadCharacter(settings.characterfile, settings.skill);
+	movestate = bs->ms;
+	goalstate = bs->gs;
+	chatstate = bs->cs;
+	weaponstate = bs->ws;
+	entergame_time = bs->entergame_time;
+	adamFlag = bs->adamFlag;	
+	
+	//free checkpoints and patrol points
+	BotFreeWaypoints(bs->checkpoints);
+	BotFreeWaypoints(bs->patrolpoints);
+	//reset the whole state
+	memset(bs, 0, sizeof(bot_state_t));
+	//copy back some state stuff that should not be reset
+	bs->ms = movestate;
+	bs->gs = goalstate;
+	bs->cs = chatstate;
+	bs->ws = weaponstate;
+	memcpy(&bs->cur_ps, &ps, sizeof(playerState_t));
+	memcpy(&bs->settings, &settings, sizeof(bot_settings_t));
+	bs->inuse = inuse;
+	bs->client = client;
+	bs->entitynum = entitynum;
+	bs->enemy = enemy;
+	bs->character = character;
+	bs->entergame_time = entergame_time;
+	bs->adamFlag = adamFlag;
+	G_Printf("Bot current skill: %f\n",settings.skill);
 	//reset several states
 	if (bs->ms) trap_BotResetMoveState(bs->ms);
 	if (bs->gs) trap_BotResetGoalState(bs->gs);
@@ -1412,7 +1492,7 @@ int BotAIStartFrame(int time) {
 	static int local_time;
 	static int botlib_residual;
 	static int lastbotthink_time;
-	#if ADAM_ACTIVE
+	#ifdef ADAM_ACTIVE 
 	// FOR ADAM
 	int adaptiveAgents,pipeIn,pipeOut,shotsHits;
 	char  neatOutput[385],pausing[2], finish[2];
@@ -1420,6 +1500,9 @@ int BotAIStartFrame(int time) {
 	float neatInput[MAX_CLIENTS][ADAM_NN_INPUT];
 	// FINAL NUMBER IS DEFINED BY HOW MANY ACTIONS IT CAN TAKE
 	float fitnessOutput[MAX_CLIENTS][ADAM_NN_FITNESS];
+	#elif defined(ADAPTATION)
+	int pipeIn,pipeOut;
+	int adaptiveUpdate;
 	#endif
 	float neatActions[MAX_CLIENTS][ADAM_NN_OUTPUT];
 	float tempBattleFrames;
@@ -1427,10 +1510,12 @@ int BotAIStartFrame(int time) {
 	
 	G_CheckBotSpawn();
 	
-	#if ADAM_ACTIVE
+	#ifdef ADAM_ACTIVE
 		adaptiveAgents = GetAdaptiveAgents(botstates,AdamAgentIndices);
 		if(adaptiveAgents)
 		{
+	#endif
+	#if defined(ADAM_ACTIVE) || defined(ADAPTATION)
 			if(strlen(pipeName) == 0)
 			{
 				trap_Adam_Com_Get_PipeName(pipeName);
@@ -1441,14 +1526,15 @@ int BotAIStartFrame(int time) {
 			pipeOut = trap_Adam_Com_Open_Pipe(pipeName,0);
 			trap_Adam_Com_Write_Ready(pipeOut);
 			trap_Adam_Com_Close_Pipe(pipeOut);
-
+			adaptiveUpdate = 0;
+	#endif
+	#ifdef ADAM_ACTIVE
 				// Check if it needs to pause for a new generation
 			pipeIn = trap_Adam_Com_Open_Pipe(pipeName,1);
 			trap_Adam_Com_Read_Pause(pipeIn,pausing);
 			trap_Adam_Com_Close_Pipe(pipeIn);
-		}
 	
-
+		}
 		if(pausing[0] == 'p')
 			trap_Cvar_Set("bot_pause","1");
 		else
@@ -1491,7 +1577,7 @@ int BotAIStartFrame(int time) {
 			botstates[i]->lastucmd.upmove = 0;
 			botstates[i]->lastucmd.buttons = 0;
 			botstates[i]->lastucmd.serverTime = time;
-			#if ADAM_TRAINING && ADAM_ACTIVE
+			#if defined(ADAM_TRAINING) && defined(ADAM_ACTIVE)
 				fitnessOutput[i][0] = 0;
 				//RESET THE BOT
 				if(botstates[i]->adamFlag & (ADAM_ADAPTIVE | ADAM_RESET))
@@ -1502,34 +1588,36 @@ int BotAIStartFrame(int time) {
 					// Amount of kills
 					// Avoid dying 
 					// Gather fitness values
-
+					Adam_CalcFitnessForFrame(botstates[i]);
 					tempBattleFrames = botstates[i]->frameInBattle > 0 ? botstates[i]->frameInBattle/300.0f : 1.0f;
 					shotsHits = botstates[i]->lasthitcount-botstates[i]->lastGenerationShotHit;
 					fitnessOutput[i][0] = 2;
+					fitnessOutput[i][1] = botstates[i]->fitnessScore;
 					// Accuracy
+					/*
 					fitnessOutput[i][1] = botstates[i]->shotsTaken > 0 ? 
 										(1.0f*shotsHits)
-										/(botstates[i]->shotsTaken*1.0f) : 0;
+										/(botstates[i]->shotsTaken*0.75f) : 0;
 					
-					fitnessOutput[i][1]= (shotsHits*0.1f);
-				
+					fitnessOutput[i][1]*= (shotsHits*0.4f);
+					*/
 
 					// Movement
 					//G_Printf("frames on Target: %d\n",botstates[i]->framesOnTarget);
-					fitnessOutput[i][2] =botstates[i]->framesOnTarget*0.05f;// 0.0f;//;//botstates[i]->num_kills;
+					fitnessOutput[i][2] =0.0f;//botstates[i]->framesOnTarget*0.05f;// 0.0f;//;//botstates[i]->num_kills;
 					// Deaths
 					fitnessOutput[i][3] = 0.0f;//botstates[i]->moveFaliures*0.005f;
 					botstates[i]->num_deaths = 0;
 					botstates[i]->num_kills = 0;
 					botstates[i]->timesHit = 0;
 					botstates[i]->framesOnTarget =0;
-					botstates[i]->lastTarget =-1;
 					botstates[i]->lastGenerationShotHit = botstates[i]->cur_ps.persistant[PERS_HITS];
 					//trap_EA_Respawn(i);
 					botstates[i]->adamFlag = ADAM_ADAPTIVE;
 					botstates[i]->shotsTaken = 0;
 					botstates[i]->moveFaliures =0;
 					botstates[i]->frameInBattle = 0;
+					botstates[i]->fitnessScore = 0;
 					g_entities[botstates[i]->entitynum].health = 0;
 					VectorClear(botstates[i]->lastMove);
 					AdamEnter_Respawn(botstates[i]);
@@ -1539,7 +1627,7 @@ int BotAIStartFrame(int time) {
 			#endif
 			trap_BotUserCommand(botstates[i]->client, &botstates[i]->lastucmd);
 		}
-		#if ADAM_TRAINING && ADAM_ACTIVE
+		#if defined(ADAM_TRAINING) && defined(ADAM_ACTIVE)
 			if(adaptiveAgents)
 			{
 				//Send Fitness data
@@ -1675,7 +1763,7 @@ int BotAIStartFrame(int time) {
 
 	floattime = trap_AAS_Time();
 	//Collect data here.
-	#if ADAM_ACTIVE
+	#ifdef ADAM_ACTIVE
 		if(adaptiveAgents)
 		{
 			// WRITE DATA
@@ -1699,6 +1787,11 @@ int BotAIStartFrame(int time) {
 			}
 				
 		}
+	#elif defined(ADAPTATION)
+	// HERE WE SEND DATA FROM THE PYTHON CODE TO ADAPT THE BOTS
+	pipeIn = trap_Adam_Com_Open_Pipe(pipeName,1);
+	trap_Adam_Com_Read_Adaptation(pipeIn,&adaptiveUpdate);
+	trap_Adam_Com_Close_Pipe(pipeIn);
 	#endif
 	// execute scheduled bot AI
 	for( i = 0; i < MAX_CLIENTS; i++ ) {
@@ -1706,6 +1799,9 @@ int BotAIStartFrame(int time) {
 			continue;
 		}
 		//
+		#ifdef ADAPTATION
+		botstates[i]->skillAdaptation = adaptiveUpdate;
+		#endif
 		botstates[i]->botthink_residual += elapsed_time;
 		//
 		if ( botstates[i]->botthink_residual >= thinktime ) {
@@ -1931,11 +2027,8 @@ int BotAdamAgent(int clientNum,float thinktime, float *neatInput)
 	*/
 	bs->flags &= ~BFL_IDEALVIEWSET; 
 	AdamBotIntermission(bs);
-	#if ADAM_DEBUG
-		if(!bs->adamNode) AdamEnter_Debug(bs);
-	#else
-		if (!bs->adamNode) AdamEnter_Seek(bs);
-	#endif
+
+	if (!bs->adamNode) AdamEnter_Seek(bs);
 	BotResetNodeSwitches();
 	if(bs->lasthealth > bs->inventory[INVENTORY_HEALTH]+1)
 		bs->timesHit++;
@@ -1967,14 +2060,13 @@ int BotAdamAgent(int clientNum,float thinktime, float *neatInput)
 // reference to the bots and their neural networks
 void BotStateToNEAT(float neatArray[MAX_CLIENTS][ADAM_NN_INPUT], bot_state_t **bs)
 {
-	vec3_t forward, right, backward,left;
 	int i,j;
 
 	for(i = 0; i < MAX_CLIENTS;i++)
 	{
 		if(bs[i]->adamFlag & ADAM_ADAPTIVE)
 		{
-			AdamVectors(bs[i],bs[i]->viewangles,forward,right,backward,left);
+			
 			//Initialization and NN connection
 			neatArray[i][0] = 2;
 
@@ -1983,13 +2075,13 @@ void BotStateToNEAT(float neatArray[MAX_CLIENTS][ADAM_NN_INPUT], bot_state_t **b
 				neatArray[i][j+1] = bs[i]->wallRaycast[j];
 			
 			// ENEMY RADAR
-			for(j=0;j<13;j++)
+			for(j=0;j<ADAM_RADAR_AMOUNT;j++)
 				neatArray[i][j+9] = bs[i]->enemyRadars[j][2];
 			
 			// IS ON TARGET
-			neatArray[i][22] = AdamOnTarget(bs[i],forward) ? 1.0f : 0.0f;
+			neatArray[i][9+ADAM_RADAR_AMOUNT] = bs[i]->isOnTarget;
 
-			neatArray[i][23] = bs[i]->combatStatus;
+			neatArray[i][10+ADAM_RADAR_AMOUNT] = bs[i]->combatStatus;
 		/*	health = bs[i]->lastframe_health;
 			// Self HP
 			if(health < 0)

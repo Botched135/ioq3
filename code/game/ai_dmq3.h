@@ -194,16 +194,6 @@ float AdamEntityVisible(int viewer, vec3_t eye, vec3_t viewangles, float fov, in
 qboolean AdamFieldOfVision(float viewangles, float fov, float angles);
 qboolean AdamEnemyInRange(bot_state_t* bs);
 
-// ADAM DEFINITIONS
-#define RAD_TO_DEGREE   M_PI/180.0f
-#define HALFPIE         M_PI/2
-#define FIRSTRADAR      M_PI/4
-#define SECONDRADAR     M_PI/8
-#define THIRDRADAR      32.5f* RAD_TO_DEGREE
-#define FOURTHRADAR     17.5f* RAD_TO_DEGREE
-#define FIFTHRADAR      11.25f* RAD_TO_DEGREE
-#define SIXTHRADAR      5.0f* RAD_TO_DEGREE
-
 
 //ctf flags
 #define CTF_FLAG_NONE		0

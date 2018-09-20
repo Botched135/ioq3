@@ -3841,13 +3841,24 @@ void trap_Adam_Com_Read_Finish(int file, char* input)
 		printf("FINISH READ ERROR");
 }
 
+void trap_Adam_Com_Read_Adaptation(int file, int *adaptationVal)
+{
+	int returnVal;
+	char input[3];
+	returnVal = read(file,input,2);
+	if(returnVal<0)
+		printf("ADAPT READ ERROR");
+		
+	*adaptationVal = atoi(input);
+}
+
 void trap_Adam_Com_Write_Neat(int file, float neatArray[MAX_CLIENTS][ADAM_NN_INPUT],int adaptiveAgents)
 {
 	int i, counter, returnVal;
 	char *writeArray;
-	char temp[116];
+	char temp[91];
 	counter = 0;
-	writeArray = calloc(1160,sizeof(char));
+	writeArray = calloc(910,sizeof(char));
 	for(i = 0; i<MAX_CLIENTS;i++)
 	{
 		if(neatArray[i][0] == 2)
@@ -3858,12 +3869,13 @@ void trap_Adam_Com_Write_Neat(int file, float neatArray[MAX_CLIENTS][ADAM_NN_INP
 			neatArray[i][7],neatArray[i][8],neatArray[i][9],neatArray[i][10],neatArray[i][11],neatArray[i][12],
 			neatArray[i][13],neatArray[i][14],neatArray[i][15],neatArray[i][16],neatArray[i][17],neatArray[i][18],
 			neatArray[i][19],neatArray[i][20],neatArray[i][21],neatArray[i][22]);*/
-			snprintf(temp,115,
-			"%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.0f:", 
+			snprintf(temp,90,
+			"%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.0f:", 
 			neatArray[i][1],neatArray[i][2],neatArray[i][9],neatArray[i][10],neatArray[i][11],neatArray[i][12],
 			neatArray[i][13],neatArray[i][14],neatArray[i][15],neatArray[i][16],neatArray[i][17],neatArray[i][18],
-			neatArray[i][19],neatArray[i][20],neatArray[i][21],neatArray[i][22],neatArray[i][23]);
-			temp[115] = '\0';
+			neatArray[i][19]);
+			temp[90] = '\0';
+
 			strcat(writeArray,temp);
 			counter++;
 			
@@ -3886,15 +3898,15 @@ void trap_Adam_Com_Write_Fitness(int file, float fitnessArray[MAX_CLIENTS][ADAM_
 {
 	int i,counter, returnVal;
 	char *writeArray;
-	char temp[30];
+	char temp[14];
 	counter = 0;
-	writeArray = calloc(315, sizeof(char));
+	writeArray = calloc(140, sizeof(char));
 	for(i = 0; i<MAX_CLIENTS;i++)
 	{
 		if(fitnessArray[i][0] ==2)
 		{
-			snprintf(temp,29,"%.3f,%.3f,%.4f:",fitnessArray[i][1],fitnessArray[i][2],fitnessArray[i][3]);
-			temp[29] = '\0';
+			snprintf(temp,13,"%.8f:",fitnessArray[i][1]);
+			temp[13] = '\0';
 			strcat(writeArray,temp);
 			counter++;
 		}

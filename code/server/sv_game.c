@@ -864,6 +864,10 @@ intptr_t SV_GameSystemCalls( intptr_t *args ) {
 		trap_Adam_Com_Read_Finish(args[1],VMA(2));
 		return 0;  
 
+	case ADAM_COM_READ_ADAPTATION:
+		trap_Adam_Com_Read_Adaptation(args[1],VMA(2));
+		return 0;
+		
 	case ADAM_COM_WRITE_NEAT:
 		trap_Adam_Com_Write_Neat(args[1],VMA(2),args[3]);
 		return 0;

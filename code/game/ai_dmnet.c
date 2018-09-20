@@ -1422,7 +1422,6 @@ void BotClearPath(bot_state_t *bs, bot_moveresult_t *moveresult) {
 						// if the mine is visible from the current position
 						if (bsptrace.fraction >= 1.0 || bsptrace.ent == state.number) {
 							// shoot at the mine
-							G_Printf("wolololo\n");
 							trap_EA_Attack(bs->client);
 						}
 					}
@@ -2639,7 +2638,6 @@ int AINode_Battle_NBG(bot_state_t *bs) {
 void AdamEnter_Seek(bot_state_t* bs)
 {
 	bs->adamNode = Adam_Seek;
-	bs->lastTarget = -1;
 }
 int Adam_Seek(bot_state_t* bs, float* neatData)
 {
@@ -2671,7 +2669,11 @@ int Adam_Seek(bot_state_t* bs, float* neatData)
 	if (AdamFindEnemy(bs, -1)) 
 	{
 		trap_BotEmptyGoalStack(bs->gs);
-		AdamEnter_Fight(bs);
+		#ifdef ADAM_DEBUG
+			AdamEnter_Debug(bs);
+		#else 
+			AdamEnter_Fight(bs);
+		#endif
 		return qfalse;
 	}
 	if(!AdamGetLongTermItemGoal(bs,bs->tfl,&goal))
@@ -2830,7 +2832,11 @@ int Adam_NearbySeek(bot_state_t* bs, float* neatData)
 	if(AdamFindEnemy(bs,-1))
 	{
 		trap_BotEmptyGoalStack(bs->gs);
-		AdamEnter_Fight(bs);
+		#ifdef ADAM_DEBUG
+			AdamEnter_Debug(bs);
+		#else
+			AdamEnter_Fight(bs);
+		#endif
 		return qfalse;
 	}
 	bs->combatStatus = 0;
@@ -2877,6 +2883,8 @@ int Adam_Fight(bot_state_t* bs, float* neatData)
 	
 	//bs->isHit = bs->lasthealth > bs->inventory[INVENTORY_HEALTH]+1;
 	//If no enemies are within radar range, return to seek
+
+	AdamVectors(bs,bs->viewangles,forward,right,backward,left);
 	if(!AdamEnemyInRange(bs))
 	{
 		bs->combatStatus = 2;
@@ -2897,7 +2905,7 @@ int Adam_Fight(bot_state_t* bs, float* neatData)
 	// SHOOT
 	if(neatData[0] > NN_THRESHOLD)
 	{
-		trap_EA_Attack(clientNumber); // Or adam Attack
+		//trap_EA_Attack(clientNumber); // Or adam Attack
 		bs->flags ^= BFL_ATTACKED;
 		bs->shotsTaken++;
 	}
@@ -2958,72 +2966,46 @@ int Adam_Fight(bot_state_t* bs, float* neatData)
 		angleTurn = (neatData[2]*2.0f-1.0f)*25.0f;
 	else if(neatData[2]< -NN_THRESHOLD)
 		angleTurn = (neatData[2]*2.0f+1.0f)*25.0f;
-/*	angleTurnLeft = 0;
-	angleTurnRight = 0;
-	/*if(neatData[5]> NN_THRESHOLD)
-	{
-		//The values are between [0.5;1]
-		angleTurnLeft = (neatData[4]*2.0f)-1.0f;
-		angleTurnLeft *= 25.0f;
-		angleTurn+= angleTurnLeft;
-		
-	}
-	if(neatData[6]> NN_THRESHOLD)
-	{
-		//The values are between [-0.5;-1]
-		angleTurnRight = (neatData[4]*2.0f)-1.0f;
-		angleTurnRight *= -25.0f;
-		angleTurn+=angleTurnRight;
-	}
-*/
+
 	bs->ideal_viewangles[YAW]+= angleTurn;
-
-	/*
-	if(neatData[1]> NN_THRESHOLD)
-	{
-		if(neatData[2]> NN_THRESHOLD &&  neatData[2] > neatData[1])
-			moveType = MOVE_CROUCH;
-		else
-			moveType = MOVE_JUMP;
-	}
-	// CROUCH
-	else if(neatData[2]>NN_THRESHOLD)
-		moveType = MOVE_CROUCH;
-
-	VectorClear(moveDirection);
-	
-	// MOVE FORWARD/BACKWARDS
-	if(neatData[3]> NN_THRESHOLD)
-	{
-		if(neatData[4] > neatData[3])
-			VectorCopy(backward,moveDirection);
-		else
-			VectorCopy(forward,moveDirection);
-	}
-	else if(neatData[4]>NN_THRESHOLD)
-		VectorCopy(backward,moveDirection);
-	
-	// RIGHT/LEFT
-	if(neatData[5]> NN_THRESHOLD)
-	{
-		if(neatData[6] > neatData[5])
-			VectorAdd(left,moveDirection,moveDirection);
-		else
-			VectorAdd(right,moveDirection,moveDirection);
-	}
-	else if(neatData[6]>NN_THRESHOLD)
-		VectorAdd(left,moveDirection,moveDirection);
-	
-	trap_BotMoveInDirection(bs->ms,moveDirection,400,moveType);
-*/
-	// How to turn...
-
 
 	// Look for better enemy, for next frame 
 	Add_Ammo(&g_entities[bs->entitynum],WEAPONINDEX_MACHINEGUN,100);
-
 	bs->frameInBattle++;
 	return qtrue;
+}
+void Adam_CalcFitnessForFrame(bot_state_t* bs)
+{
+	int i;
+	float enemyYawRight, enemyYawLeft;
+	enemyYawLeft = 0.0f;
+	enemyYawRight = 0.0f;
+
+	if(bs->enemyRadars[0][3] > 0.0f)
+	{
+		bs->fitnessScore+= 10.0f;
+		return;
+	}
+
+	for(i = 1; i< ADAM_RADAR_AMOUNT; i+=2)
+	{
+		enemyYawRight = bs->enemyRadars[i][3];
+		enemyYawLeft = bs->enemyRadars[i+1][3];
+		if(enemyYawRight>0.0f)
+		{
+			if(enemyYawRight<enemyYawLeft)
+				bs->fitnessScore+= bs->enemyRadars[i+1][3]/36.0f;
+			else
+				bs->fitnessScore+= bs->enemyRadars[i][3]/36.0f;
+			break;
+		}
+		else if(enemyYawLeft>0.0f)
+		{
+			bs->fitnessScore+=bs->enemyRadars[i+1][3]/36.0f;
+			break;
+		}
+			
+	}
 }
 void AdamEnter_Respawn(bot_state_t* bs)
 {
@@ -3049,12 +3031,7 @@ int Adam_Respawn(bot_state_t* bs,float* neatData)
 	{	
 		if (!BotIsDead(bs))
 		{
-			#if ADAM_DEBUG
-				AdamEnter_Debug(bs);
-			#else
-				AdamEnter_Seek(bs);
-			#endif
-
+			AdamEnter_Seek(bs);
 		}
 		else
 			trap_EA_Respawn(bs->client);
@@ -3074,11 +3051,11 @@ int Adam_Respawn(bot_state_t* bs,float* neatData)
 	return qtrue;
 
 }
-#if ADAM_DEBUG
+#ifdef ADAM_DEBUG
 void AdamEnter_Debug(bot_state_t* bs)
 {
 	bs->adamNode = Adam_Debug;
-	bs->debugTime = FloatTime()+10;
+	bs->debugTime = FloatTime()+60;
 }
 int Adam_Debug(bot_state_t* bs, float* neatData)
 {
@@ -3090,17 +3067,16 @@ int Adam_Debug(bot_state_t* bs, float* neatData)
 		AdamEnter_Respawn(bs);
 		return qfalse;
 	}
-	AdamVectors(bs,bs->viewangles,front,right,back,left);
-	if(AdamOnTarget(bs,front))
+	if(bs->debugTime < FloatTime())
 	{
-		trap_EA_Attack(bs->client);
-		bs->flags ^= BFL_ATTACKED;
-		bs->shotsTaken++;
+		bs->debugTime = FloatTime()+60;
+		BotResetState(bs);
+		AdamEnter_Seek(bs);
+		G_Printf("RESET!\n");
+		return qfalse;
 	}
-
-	G_Printf("Weapon state: %d \n",bs->cur_ps.weaponstate);
-	G_Printf("Shots hit %d\t shots taken: %d\n",bs->cur_ps.persistant[PERS_HITS],bs->shotsTaken);
-	Add_Ammo(&g_entities[bs->entitynum],WEAPONINDEX_MACHINEGUN,100);
+	AdamVectors(bs,bs->viewangles,front,right,back,left);
+	bs->ideal_viewangles[YAW] += 1.0f;
 	return qtrue;
 
 }

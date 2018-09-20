@@ -72,9 +72,10 @@ void AdamEnter_NearbySeek(bot_state_t* bs);
 int Adam_NearbySeek(bot_state_t* bs, float* neatData);
 void AdamEnter_Fight(bot_state_t* bs);
 int Adam_Fight(bot_state_t* bs, float* neatData);
+void Adam_CalcFitnessForFrame(bot_state_t* bs);
 void AdamEnter_Respawn(bot_state_t* bs);
 int Adam_Respawn(bot_state_t*, float* neatData);
-#if ADAM_DEBUG
+#ifdef ADAM_DEBUG
 void AdamEnter_Debug(bot_state_t* bs);
 int Adam_Debug(bot_state_t* bs, float* neatData);
 #endif
