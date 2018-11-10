@@ -65,7 +65,7 @@ void BotDumpNodeSwitches(bot_state_t *bs);
 ADAM NODES
 ==========================
 */
-
+#ifdef ADAM_ACTIVE
 void AdamEnter_Seek(bot_state_t* bs);
 int Adam_Seek(bot_state_t* bs, float* neatData);
 void AdamEnter_NearbySeek(bot_state_t* bs);
@@ -79,8 +79,15 @@ int Adam_Respawn(bot_state_t*, float* neatData);
 void AdamEnter_Debug(bot_state_t* bs);
 int Adam_Debug(bot_state_t* bs, float* neatData);
 #endif
+void AdamEnter_Intermedium(bot_state_t* bs);
+int Adam_Intermedium(bot_state_t* bs, float* neatData);
+void AdamEnter_SetupView(bot_state_t* bs);
+int Adam_SetupView(bot_state_t* bs, float* neatData);
 
 // ADAM Helper functions
 int AdamGetLongTermItemGoal(bot_state_t* bs, int travelFlag, bot_goal_t* goal);
+void AdamSetTrainingTime(float in);
+#endif
+// ADAM Variable
 
 #define NN_THRESHOLD 0.5

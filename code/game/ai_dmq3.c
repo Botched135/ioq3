@@ -3317,6 +3317,7 @@ void BotAimAtEnemy(bot_state_t *bs) {
 	//
 	aim_skill = trap_Characteristic_BFloat(bs->character, CHARACTERISTIC_AIM_SKILL, 0, 1);
 	aim_accuracy = trap_Characteristic_BFloat(bs->character, CHARACTERISTIC_AIM_ACCURACY, 0, 1);
+	G_Printf("Aim_skill %f, aim_accuracy %f \n",aim_skill,aim_accuracy);
 	//
 	if (aim_skill > 0.95) {
 		//don't aim too early
@@ -5250,16 +5251,20 @@ void BotDeathmatchAI(bot_state_t *bs, float thinktime) {
 		ClientName(bs->client, name, sizeof(name));
 		trap_BotSetChatName(bs->cs, name, bs->client);
 		//
-		bs->lastGenerationShotHit = 0;
+		
 		bs->lastframe_health = bs->inventory[INVENTORY_HEALTH];
 		bs->lasthitcount = bs->cur_ps.persistant[PERS_HITS];
 		//
 		bs->setupcount = 0;
 		//
 		bs->adamFlag = 0;
+		#ifdef ADAM_DEBUG
 		bs->debugTime = FloatTime()+ADAPT_INTERVAL;
+		#endif
+		#ifdef ADAM_ACTIVE
 		if(strcmp(bs->settings.characterfile,"bots/adam_c.c")==0)
 		{
+			bs->lastGenerationShotHit = 0;
 			bs->adamFlag |= (ADAM_ADAPTIVE | ADAM_RESET);
 			bs->flags &= ~BFL_IDEALVIEWSET;
 			bs->shotsTaken = 0;
@@ -5269,10 +5274,11 @@ void BotDeathmatchAI(bot_state_t *bs, float thinktime) {
 			bs->frameInBattle = 0;
 			bs->combatStatus = 0;
 			bs->fitnessScore = 0;
-			VectorClear(bs->lastMove);
+			//VectorClear(bs->lastMove);
 			G_Printf("ADAPTIVE AGENT INITIALIZED\n");
 			return;
 		}
+		#endif
 		BotSetupAlternativeRouteGoals();
 	}
 	//no ideal view set
@@ -5499,11 +5505,13 @@ void BotShutdownDeathmatchAI(void) {
 	altroutegoals_setup = qfalse;
 }
 
+
 /*
 
 ADAM FUNCTIONS
 
 */
+#ifdef ADAM_ACTIVE 
 void AdamBotIntermission(bot_state_t *bs)
 {
 	bs->flags &= ~BFL_IDEALVIEWSET;
@@ -5588,6 +5596,8 @@ int AdamFindEnemy(bot_state_t *bs, int currentEnemy)
 		VectorSubtract(entinfo.origin,bs->origin,dir);
 		squareDist = VectorLengthSquared(dir);
 
+		if(squareDist > ADAM_SIGHT_SQUARED) continue;
+		
 		//If the other enemy is further away than the current then skip this check
 		if(currentEnemy >= 0 && squareDist > curSquaredDist) continue;
 	
@@ -5946,7 +5956,9 @@ void AdamEnemyRadars(bot_state_t* bs)
 		
 		vectoangles(dir, enemyAngle);
 		enemyYaw = AngleMod(enemyAngle[YAW]);
-		absYaw = Q_fabs(clientYaw -enemyYaw);
+		absYaw = Q_fabs(clientYaw -enemyYaw); 
+		if(absYaw > 180)
+		 	absYaw = 360-absYaw; // IMPORTANT else the entire left side wont give correct output
 		for(j=0;j<ADAM_RADAR_AMOUNT;j++)
 		{	
 			//G_Printf("Radar direction: %f \t fov: %f \t enemyYaw: %f\n",bs->enemyRadars[j][0], bs->enemyRadars[j][1], enemyYaw);
@@ -6159,10 +6171,11 @@ qboolean AdamEnemyInRange(bot_state_t* bs)
 {
 	int i;
 
-	for(i = 0; i< 13;i++)
+	for(i = 0; i< ADAM_RADAR_AMOUNT;i++)
 	{
 		if(bs->enemyRadars[i][2] >0.0f)
 			return qtrue;
 	}
 	return qfalse;
 }
+#endif

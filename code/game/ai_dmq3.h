@@ -178,6 +178,7 @@ int BotPointAreaNum(vec3_t origin);
 void BotMapScripts(bot_state_t *bs);
 
 // FOR ADAM
+#ifdef ADAM_ACTIVE
 void AdamBotIntermission(bot_state_t *bs);
 void AdamBotMapScripts(bot_state_t *bs);
 int  AdamFindEnemy(bot_state_t *bs, int currentEnemy);
@@ -193,6 +194,7 @@ float AdamWallSensor(bot_state_t* bs, vec3_t direction);
 float AdamEntityVisible(int viewer, vec3_t eye, vec3_t viewangles, float fov, int ent);
 qboolean AdamFieldOfVision(float viewangles, float fov, float angles);
 qboolean AdamEnemyInRange(bot_state_t* bs);
+#endif
 
 
 //ctf flags

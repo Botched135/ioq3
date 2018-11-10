@@ -61,6 +61,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 int numnodeswitches;
 char nodeswitch[MAX_NODESWITCHES+1][144];
+float startTraining;
 
 #define LOOKAHEAD_DISTANCE			300
 
@@ -1489,7 +1490,6 @@ int AINode_Seek_ActivateEntity(bot_state_t *bs) {
 		return qfalse;
 	}
 	//
-	G_Printf("AINode_Seek_ActivateEntity\n");
 	goal = &bs->activatestack->goal;
 	// initialize target being visible to false
 	targetvisible = qfalse;
@@ -1820,7 +1820,6 @@ int AINode_Seek_LTG(bot_state_t *bs)
 	}
 	//if in the intermission
 	if (BotIntermission(bs)) {
-		G_Printf("Is it in intermission? \n");
 		AIEnter_Intermission(bs, "seek ltg: intermission");
 		return qfalse;
 	}
@@ -2635,6 +2634,8 @@ int AINode_Battle_NBG(bot_state_t *bs) {
 	return qtrue;
 }
 
+#ifdef ADAM_ACTIVE
+
 void AdamEnter_Seek(bot_state_t* bs)
 {
 	bs->adamNode = Adam_Seek;
@@ -2671,7 +2672,9 @@ int Adam_Seek(bot_state_t* bs, float* neatData)
 		trap_BotEmptyGoalStack(bs->gs);
 		#ifdef ADAM_DEBUG
 			AdamEnter_Debug(bs);
-		#else 
+		#elif defined(ADAM_TRAINING)  
+			AdamEnter_Intermedium(bs);
+		#else
 			AdamEnter_Fight(bs);
 		#endif
 		return qfalse;
@@ -2679,6 +2682,7 @@ int Adam_Seek(bot_state_t* bs, float* neatData)
 	if(!AdamGetLongTermItemGoal(bs,bs->tfl,&goal))
 		return qtrue;
 	
+
 	if(bs->check_time < FloatTime())
 	{
 		bs->check_time = FloatTime()+0.5;
@@ -2834,6 +2838,8 @@ int Adam_NearbySeek(bot_state_t* bs, float* neatData)
 		trap_BotEmptyGoalStack(bs->gs);
 		#ifdef ADAM_DEBUG
 			AdamEnter_Debug(bs);
+		#elif defined(ADAM_TRAINING)
+			AdamEnter_Intermedium(bs);
 		#else
 			AdamEnter_Fight(bs);
 		#endif
@@ -2854,6 +2860,7 @@ int Adam_Fight(bot_state_t* bs, float* neatData)
 	vec3_t moveDirection,viewAngles;
 	vec3_t forward, right, backward,left, nullVector;
 	int clientNumber, moveType, enemy, moveSuccess;
+	int result;
 	float angleTurn,angleTurnRight, angleTurnLeft;
 	
 	enemy = bs->enemy;
@@ -2885,6 +2892,9 @@ int Adam_Fight(bot_state_t* bs, float* neatData)
 	//If no enemies are within radar range, return to seek
 
 	AdamVectors(bs,bs->viewangles,forward,right,backward,left);
+	/*G_Printf("Radar values:[%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f]\n",
+	bs->enemyRadars[0][2],bs->enemyRadars[1][2],bs->enemyRadars[2][2],bs->enemyRadars[3][2],bs->enemyRadars[4][2]
+	,bs->enemyRadars[5][2],bs->enemyRadars[6][2],bs->enemyRadars[7][2],bs->enemyRadars[8][2]);*/
 	if(!AdamEnemyInRange(bs))
 	{
 		bs->combatStatus = 2;
@@ -2961,17 +2971,26 @@ int Adam_Fight(bot_state_t* bs, float* neatData)
 	VectorCopy(moveDirection,bs->lastMove);*/
 
 	angleTurn =0.0f;
+	if(fabs(neatData[2]) > neatData[3])
+	{
+		if(neatData[2] > NN_THRESHOLD)
+			angleTurn = (neatData[2]*2.0f-1.0f)*ADAM_ANGLE_SPEED;
+		else if(neatData[2]< -NN_THRESHOLD)
+			angleTurn = (neatData[2]*2.0f+1.0f)*ADAM_ANGLE_SPEED;
 
-	if(neatData[2] > NN_THRESHOLD)
-		angleTurn = (neatData[2]*2.0f-1.0f)*25.0f;
-	else if(neatData[2]< -NN_THRESHOLD)
-		angleTurn = (neatData[2]*2.0f+1.0f)*25.0f;
+		bs->ideal_viewangles[YAW]+= angleTurn;
+	}
+	else
+		bs->ideal_viewangles[YAW] = bs->viewangles[YAW];
 
-	bs->ideal_viewangles[YAW]+= angleTurn;
+	if(bs->ideal_viewangles[YAW] > 360.0f) 	bs->ideal_viewangles[YAW]-=360.0f;
+	else if(bs->ideal_viewangles[YAW < 0.0f]) bs->ideal_viewangles[YAW] +=360.0f;
 
+	//G_Printf("Ideal view %f & current view %f\n", bs->ideal_viewangles[YAW],bs->viewangles[YAW]);	
 	// Look for better enemy, for next frame 
 	Add_Ammo(&g_entities[bs->entitynum],WEAPONINDEX_MACHINEGUN,100);
 	bs->frameInBattle++;
+	Adam_CalcFitnessForFrame(bs);
 	return qtrue;
 }
 void Adam_CalcFitnessForFrame(bot_state_t* bs)
@@ -2991,9 +3010,10 @@ void Adam_CalcFitnessForFrame(bot_state_t* bs)
 	{
 		enemyYawRight = bs->enemyRadars[i][3];
 		enemyYawLeft = bs->enemyRadars[i+1][3];
+
 		if(enemyYawRight>0.0f)
 		{
-			if(enemyYawRight<enemyYawLeft)
+			if(enemyYawRight<enemyYawLeft && enemyYawLeft > 0.0f)
 				bs->fitnessScore+= bs->enemyRadars[i+1][3]/36.0f;
 			else
 				bs->fitnessScore+= bs->enemyRadars[i][3]/36.0f;
@@ -3004,7 +3024,7 @@ void Adam_CalcFitnessForFrame(bot_state_t* bs)
 			bs->fitnessScore+=bs->enemyRadars[i+1][3]/36.0f;
 			break;
 		}
-			
+		
 	}
 }
 void AdamEnter_Respawn(bot_state_t* bs)
@@ -3055,7 +3075,7 @@ int Adam_Respawn(bot_state_t* bs,float* neatData)
 void AdamEnter_Debug(bot_state_t* bs)
 {
 	bs->adamNode = Adam_Debug;
-	bs->debugTime = FloatTime()+60;
+	bs->debugTime = FloatTime()+10.0f;
 }
 int Adam_Debug(bot_state_t* bs, float* neatData)
 {
@@ -3066,7 +3086,7 @@ int Adam_Debug(bot_state_t* bs, float* neatData)
 	{
 		AdamEnter_Respawn(bs);
 		return qfalse;
-	}
+	}/*
 	if(bs->debugTime < FloatTime())
 	{
 		bs->debugTime = FloatTime()+60;
@@ -3074,13 +3094,158 @@ int Adam_Debug(bot_state_t* bs, float* neatData)
 		AdamEnter_Seek(bs);
 		G_Printf("RESET!\n");
 		return qfalse;
+	}*/
+	if(bs->debugTime < FloatTime())
+	{
+		AdamEnter_SetupView(bs);
+		return qfalse;
 	}
 	AdamVectors(bs,bs->viewangles,front,right,back,left);
-	bs->ideal_viewangles[YAW] += 1.0f;
+	
+	
 	return qtrue;
 
 }
 #endif
+#ifdef ADAM_TRAINING
+void AdamEnter_Intermedium(bot_state_t* bs)
+{
+	bs->adamNode = Adam_Intermedium;
+	if(startTraining == -1.0f)
+		startTraining = FloatTime()+3.0f;
+}
+
+int Adam_Intermedium(bot_state_t* bs, float* neatData)
+{	
+	if(startTraining < FloatTime())
+	{
+		G_Printf("Start training: %.3f\n",startTraining);
+		AdamEnter_SetupView(bs);
+		return qfalse;
+	}
+	return qtrue;
+}
+#endif
+void AdamEnter_SetupView(bot_state_t* bs)
+{
+	int i,clientNum, entityNum, contentMask;
+	float enemyRange, enemyYaw, clientYaw, currentYaw, diffYaw;
+	float enemyYaws[MAX_CLIENTS];
+	vec3_t origin,dir,enemyAngle,eye;
+	aas_entityinfo_t entinfo;
+	bsp_trace_t trace;
+
+	contentMask = MASK_SHOT;
+	entityNum = bs->entitynum;
+	clientNum = bs->client;
+	VectorCopy(bs->eye,eye);
+	VectorCopy(bs->origin,origin);
+	clientYaw = bs->viewangles[YAW];
+	enemyYaw = -1.0f;
+	//G_Printf("%i has enter setup_View at %f with start time %f \n",clientNum,FloatTime(),startTraining);
+	for (i = 0; i < level.maxclients; i++) 
+	{
+		enemyYaws[i] = -1.0f;
+		if(i == clientNum) continue;
+
+		if (g_entities[i].flags & FL_NOTARGET) continue;
+		
+		BotEntityInfo(i, &entinfo);
+		// is the bot valid
+		if (!entinfo.valid) continue;
+
+		//if the enemy is dead or the enemy is the bot self
+		if (EntityIsDead(&entinfo) || entinfo.number == entityNum) continue;
+
+		VectorSubtract(entinfo.origin,origin,dir);	
+		enemyRange = VectorLengthSquared(dir);
+		
+		if(enemyRange > ADAM_SIGHT_SQUARED) continue;
+		
+		BotAI_Trace(&trace, eye, NULL, NULL, entinfo.origin, entityNum, contentMask);
+	
+		if(trace.ent != entinfo.number) continue;
+		
+		vectoangles(dir, enemyAngle);
+		enemyYaw = AngleMod(enemyAngle[YAW]); 
+		
+		if(!AdamFieldOfVision(clientYaw, 360.0f, enemyYaw)) continue;
+
+		enemyYaws[i] = enemyYaw;
+	}
+
+	currentYaw = 1000.0f;
+	for (i = 0; i < level.maxclients; i++) 
+	{
+		if(enemyYaws[i] == -1.0f) continue;
+
+		if(currentYaw == 1000.0f)
+		{
+			currentYaw = enemyYaws[i];
+			continue;
+		}
+		diffYaw = Q_fabs(enemyYaws[i]-currentYaw);
+		if(diffYaw > 180.0f)
+		{
+			// Add to the greatest
+			diffYaw = 360.0f - diffYaw;
+			if(currentYaw > enemyYaws[i])
+				currentYaw+= (diffYaw/2.0f);
+			else
+				currentYaw= enemyYaws[i]+(diffYaw/2.0f);
+				
+		}
+		else
+		{
+			// Add to the smallest
+			if(currentYaw < enemyYaws[i])
+				currentYaw+=(diffYaw/2.0f);
+			else
+				currentYaw = enemyYaws[i]+(diffYaw/2.0f);
+		}
+	}
+	if(currentYaw != 1000.0f)
+	{
+		currentYaw-=180.0f;
+		currentYaw+= crandom()*10.0f;
+		if(currentYaw < 0.0f)
+			currentYaw+=360.0f;
+		else if(currentYaw > 360.0f)
+			currentYaw-=360.0f;
+
+		bs->ideal_viewangles[YAW] = currentYaw;
+	}
+	bs->adamNode = Adam_SetupView;
+	
+}
+
+int Adam_SetupView(bot_state_t* bs, float* neatData)
+{
+	
+	// Calculate the ideal view angle , and wait for the actual view angle to be close to 
+
+	
+	//G_Printf("ideal view: %f  current angle: %f\n",bs->ideal_viewangles[YAW],bs->viewangles[YAW]);
+	if (BotIsDead(bs)) 
+	{
+		AdamEnter_Respawn(bs);
+		return qfalse;
+	}
+
+	#if !defined(ADAM_DEBUG)
+	
+	if(Q_fabs(bs->ideal_viewangles[YAW]-bs->viewangles[YAW])<2.0f)
+	{
+		AdamEnter_Fight(bs);
+		return qfalse;
+	}
+	
+	#endif // ADAM_DEBUG
+	
+
+
+	return qtrue;
+}
 
 int AdamGetLongTermItemGoal(bot_state_t* bs, int travelFlag, bot_goal_t* goal)
 {
@@ -3106,3 +3271,9 @@ int AdamGetLongTermItemGoal(bot_state_t* bs, int travelFlag, bot_goal_t* goal)
 	}
 	return qtrue;
 }
+
+void AdamSetTrainingTime(float in)
+{
+	startTraining = in;
+}
+#endif

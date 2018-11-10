@@ -90,9 +90,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define MAX_PROXMINES				64
 
 // Adaptive Changes (non-adam)
-#define ADAPTATION
-//#define ADAPT_DATA
-#define ADAPT_INTERVAL				10
+#define ADAPTATION_ACTIVE
+#define ADAPTATION_TIME
+//#define ADAPTATION_AFFECTIVE
+#define ADAPT_INTERVAL				30
 
 // ADAM distances
 #define ADAM_MAX_DISTANCE 	1220000000
@@ -103,6 +104,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define ADAM_SIGHT_SQUARED	ADAM_SIGHT_DISTANCE*ADAM_SIGHT_DISTANCE
 #define ADAM_DIST_SCALAR	0.02f // method of ad-hoc
 #define ADAM_RADAR_AMOUNT	9
+#define ADAM_ANGLE_SPEED 	25.0f
 // ADAM flag
 #define ADAM_ADAPTIVE		0x00000001
 #define ADAM_RESET 			0x00000002
@@ -112,8 +114,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 // ADAM Training
 //#define ADAM_ACTIVE
+//#define ADAM_AFFECTIVE
 //#define ADAM_TRAINING
-#define ADAM_DEBUG			
+//#define ADAM_DEBUG			
 
 //check points
 typedef struct bot_waypoint_s
@@ -312,16 +315,18 @@ typedef struct bot_state_s
 	int combatStatus;
 	int framesOnTarget;
 	float isOnTarget;
-	float enemyRadars[ADAM_RADAR_AMOUNT][4];	// from view direction and set towards back. Contains YAWangle, fov, value
+	float enemyRadars[ADAM_RADAR_AMOUNT][4];	// from view direction and set towards back. Contains YAWangle, fov, value and exact YawToEnemy
 	float wallRaycast[8];
 	float fitnessScore;
-	vec3_t lastMove;
+	//vec3_t lastMove;
+	vec3_t adam_idealView;
 	#endif
-	#if defined(ADAM_DEBUG) || defined(ADAPTATION)
+	#ifdef ADAM_DEBUG
 	float debugTime;
 	#endif
-	#ifdef ADAPTATION
+	#ifdef ADAPTATION_ACTIVE
 	int skillAdaptation;
+	float elaspedTime;
 	#endif
 	
 } bot_state_t;
@@ -332,6 +337,7 @@ void BotResetState(bot_state_t *bs);
 int NumBots(void);
 //returns info about the entity
 void BotEntityInfo(int entnum, aas_entityinfo_t *info);
+
 
 extern float floattime;
 #define FloatTime() floattime
@@ -347,13 +353,12 @@ int		BotTeamLeader(bot_state_t *bs);
 
 // ADAM functions
 void AdaptiveUpdate(bot_state_t* bs, float skill);
+#ifdef ADAM_ACTIVE
 int BotAdamAgent(int clientNum, float thinktime,float *neatInput); 
 void BotStateToNEAT(float neatArray[MAX_CLIENTS][ADAM_NN_INPUT], bot_state_t **bs);
 void AdamBotChatSetup(int client, bot_state_t *bs);
 int GetAdaptiveAgents(bot_state_t** bs, int* AdamIndices);
 int AdamAttack(bot_state_t* bs);
-int AdamSelectWeapon(bot_state_t* bs, float weaponIndex);
-int AdamJump(bot_state_t* bs, int airState);
-
+void AdamChangeViewAngles(bot_state_t *bs, float thinktime);
 int GetAmmoWeapon(int weaponNumber, bot_state_t* bs);
-
+#endif
