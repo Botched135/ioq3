@@ -89,6 +89,35 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //
 #define MAX_PROXMINES				64
 
+// Adaptive Changes (non-adam)
+#define ADAPTATION_ACTIVE
+#define ADAPTATION_TIME
+//#define ADAPTATION_AFFECTIVE
+#define ADAPT_INTERVAL				30
+
+// ADAM distances
+#define ADAM_MAX_DISTANCE 	1220000000
+#define ADAM_MIN_DISTANCE	1140000000
+
+// ADAM Radar values
+#define ADAM_SIGHT_DISTANCE 1000.0f // Squared in order to avoid squareRoot
+#define ADAM_SIGHT_SQUARED	ADAM_SIGHT_DISTANCE*ADAM_SIGHT_DISTANCE
+#define ADAM_DIST_SCALAR	0.02f // method of ad-hoc
+#define ADAM_RADAR_AMOUNT	9
+#define ADAM_ANGLE_SPEED 	25.0f
+// ADAM flag
+#define ADAM_ADAPTIVE		0x00000001
+#define ADAM_RESET 			0x00000002
+#define ADAM_ENEMYCROUCH 	0x00000004
+#define ADAM_ENEMYAIR 		0x00000008
+#define ADAM_ENEMYFIRE		0x00000010
+
+// ADAM Training
+//#define ADAM_ACTIVE
+//#define ADAM_AFFECTIVE
+//#define ADAM_TRAINING
+//#define ADAM_DEBUG			
+
 //check points
 typedef struct bot_waypoint_s
 {
@@ -276,12 +305,28 @@ typedef struct bot_state_s
 	int adamFlag;
 	int (*adamNode)(struct bot_state_s* bs,float* neatData);
 
+	#if defined(ADAM_ACTIVE) || defined(ADAM_DEBUG)
 	int squaredEnemyDis;
-
+	int frameInBattle;
+	int shotsTaken;
+	int lastGenerationShotHit;
+	int timesHit;
+	int moveFaliures;
+	int combatStatus;
+	int framesOnTarget;
 	float isOnTarget;
-	float enemyRadars[12];								// from view direction and in clockwise direction
-	float lastTime;
 	float wallRaycast[8];
+	float fitnessScore;
+	//vec3_t lastMove;
+	vec3_t adam_idealView;
+	#endif
+	#ifdef ADAM_DEBUG
+	float debugTime;
+	#endif
+	#ifdef ADAPTATION_ACTIVE
+	int skillAdaptation;
+	float elaspedTime;
+	#endif
 	
 } bot_state_t;
 
@@ -291,6 +336,7 @@ void BotResetState(bot_state_t *bs);
 int NumBots(void);
 //returns info about the entity
 void BotEntityInfo(int entnum, aas_entityinfo_t *info);
+
 
 extern float floattime;
 #define FloatTime() floattime
@@ -305,26 +351,13 @@ int		BotAI_GetSnapshotEntity( int clientNum, int sequence, entityState_t *state 
 int		BotTeamLeader(bot_state_t *bs);
 
 // ADAM functions
+void AdaptiveUpdate(bot_state_t* bs, float skill);
+#ifdef ADAM_ACTIVE
 int BotAdamAgent(int clientNum, float thinktime,float *neatInput); 
 void BotStateToNEAT(float neatArray[MAX_CLIENTS][ADAM_NN_INPUT], bot_state_t **bs);
 void AdamBotChatSetup(int client, bot_state_t *bs);
-int GetAdaptiveAgents(bot_state_t** bs);
+int GetAdaptiveAgents(bot_state_t** bs, int* AdamIndices);
 int AdamAttack(bot_state_t* bs);
-int AdamSelectWeapon(bot_state_t* bs, float weaponIndex);
-int AdamJump(bot_state_t* bs, int airState);
-
+void AdamChangeViewAngles(bot_state_t *bs, float thinktime);
 int GetAmmoWeapon(int weaponNumber, bot_state_t* bs);
-
-// ADAM distances
-#define ADAM_MAX_DISTANCE 	1220000000
-#define ADAM_MIN_DISTANCE	1140000000
-
-// ADAM Radar values
-#define ADAM_SIGHT_DISTANCE 1000.0f // Squared in order to avoid squareRoot
-#define ADAM_DIST_SCALAR	0.01f // method of ad-hoc
-// ADAM flag
-#define ADAM_ADAPTIVE		0x00000001
-#define ADAM_RESET 			0x00000002
-#define ADAM_ENEMYCROUCH 	0x00000004
-#define ADAM_ENEMYAIR 		0x00000008
-#define ADAM_ENEMYFIRE		0x00000010
+#endif

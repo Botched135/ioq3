@@ -2847,8 +2847,11 @@ float BotEntityVisible(int viewer, vec3_t eye, vec3_t viewangles, float fov, int
 	//check if entity is within field of vision
 	VectorSubtract(middle, eye, dir);
 	vectoangles(dir, entangles);
+
 	if (!InFieldOfVision(viewangles, fov, entangles)) return 0;
 	//
+	//G_Printf("Field of vision: viewAngles[%.3f,%.3f,%.3f] \t enemyangle[%.3f,%.3f,%.3f]\n",
+	//viewangles[0],viewangles[1],viewangles[2],entangles[0],entangles[1],entangles[2]);
 	pc = trap_AAS_PointContents(eye);
 	infog = (pc & CONTENTS_FOG);
 	inwater = (pc & (CONTENTS_LAVA|CONTENTS_SLIME|CONTENTS_WATER));
@@ -3314,6 +3317,7 @@ void BotAimAtEnemy(bot_state_t *bs) {
 	//
 	aim_skill = trap_Characteristic_BFloat(bs->character, CHARACTERISTIC_AIM_SKILL, 0, 1);
 	aim_accuracy = trap_Characteristic_BFloat(bs->character, CHARACTERISTIC_AIM_ACCURACY, 0, 1);
+	G_Printf("Aim_skill %f, aim_accuracy %f \n",aim_skill,aim_accuracy);
 	//
 	if (aim_skill > 0.95) {
 		//don't aim too early
@@ -5247,20 +5251,34 @@ void BotDeathmatchAI(bot_state_t *bs, float thinktime) {
 		ClientName(bs->client, name, sizeof(name));
 		trap_BotSetChatName(bs->cs, name, bs->client);
 		//
+		
 		bs->lastframe_health = bs->inventory[INVENTORY_HEALTH];
 		bs->lasthitcount = bs->cur_ps.persistant[PERS_HITS];
 		//
 		bs->setupcount = 0;
 		//
 		bs->adamFlag = 0;
+		#ifdef ADAM_DEBUG
+		bs->debugTime = FloatTime()+ADAPT_INTERVAL;
+		#endif
+		#ifdef ADAM_ACTIVE
 		if(strcmp(bs->settings.characterfile,"bots/adam_c.c")==0)
 		{
+			bs->lastGenerationShotHit = 0;
 			bs->adamFlag |= (ADAM_ADAPTIVE | ADAM_RESET);
 			bs->flags &= ~BFL_IDEALVIEWSET;
-			bs->lastTime = 0.0f;
+			bs->shotsTaken = 0;
+			bs->timesHit = 0;
+			bs->moveFaliures = 0;
+			bs->framesOnTarget = 0;
+			bs->frameInBattle = 0;
+			bs->combatStatus = 0;
+			bs->fitnessScore = 0;
+			//VectorClear(bs->lastMove);
 			G_Printf("ADAPTIVE AGENT INITIALIZED\n");
 			return;
 		}
+		#endif
 		BotSetupAlternativeRouteGoals();
 	}
 	//no ideal view set
@@ -5487,11 +5505,13 @@ void BotShutdownDeathmatchAI(void) {
 	altroutegoals_setup = qfalse;
 }
 
+
 /*
 
 ADAM FUNCTIONS
 
 */
+#ifdef ADAM_ACTIVE 
 void AdamBotIntermission(bot_state_t *bs)
 {
 	bs->flags &= ~BFL_IDEALVIEWSET;
@@ -5511,10 +5531,6 @@ void AdamBotMapScripts(bot_state_t *bs)
 {
 	char info[1024];
 	char mapname[128];
-	int i, shootbutton;
-	float aim_accuracy;
-	aas_entityinfo_t entinfo;
-	vec3_t dir;
 
 	trap_GetServerinfo(info, sizeof(info));
 
@@ -5523,7 +5539,6 @@ void AdamBotMapScripts(bot_state_t *bs)
 
 	if (!Q_stricmp(mapname, "q3tourney6") || !Q_stricmp(mapname, "q3tourney6_ctf") || !Q_stricmp(mapname, "mpq3tourney6")) {
 		vec3_t mins = {694, 200, 480}, maxs = {968, 472, 680};
-		vec3_t buttonorg = {304, 352, 920};
 		//NOTE: NEVER use the func_bobbing in q3tourney6
 		bs->tfl &= ~TFL_FUNCBOB;
 		//crush area is higher in mpq3tourney6
@@ -5537,47 +5552,6 @@ void AdamBotMapScripts(bot_state_t *bs)
 				if (bs->origin[2] > mins[2] && bs->origin[2] < maxs[2]) {
 					return;
 				}
-			}
-		}
-		shootbutton = qfalse;
-		//if an enemy is in the bounding box then shoot the button
-		for (i = 0; i < level.maxclients; i++) {
-
-			if (i == bs->client) continue;
-			//
-			BotEntityInfo(i, &entinfo);
-			//
-			if (!entinfo.valid) continue;
-			//if the enemy isn't dead and the enemy isn't the bot self
-			if (EntityIsDead(&entinfo) || entinfo.number == bs->entitynum) continue;
-			//
-			if (entinfo.origin[0] > mins[0] && entinfo.origin[0] < maxs[0]) {
-				if (entinfo.origin[1] > mins[1] && entinfo.origin[1] < maxs[1]) {
-					if (entinfo.origin[2] > mins[2] && entinfo.origin[2] < maxs[2]) {
-						//if there's a team mate below the crusher
-						if (BotSameTeam(bs, i)) {
-							shootbutton = qfalse;
-							break;
-						}
-						else if (bs->enemy == i) {
-							shootbutton = qtrue;
-						}
-					}
-				}
-			}
-		}
-		if (shootbutton) {
-			bs->flags |= BFL_IDEALVIEWSET;
-			VectorSubtract(buttonorg, bs->eye, dir);
-			vectoangles(dir, bs->ideal_viewangles);
-			aim_accuracy = trap_Characteristic_BFloat(bs->character, CHARACTERISTIC_AIM_ACCURACY, 0, 1);
-			bs->ideal_viewangles[PITCH] += 8 * crandom() * (1 - aim_accuracy);
-			bs->ideal_viewangles[PITCH] = AngleMod(bs->ideal_viewangles[PITCH]);
-			bs->ideal_viewangles[YAW] += 8 * crandom() * (1 - aim_accuracy);
-			bs->ideal_viewangles[YAW] = AngleMod(bs->ideal_viewangles[YAW]);
-			//
-			if (InFieldOfVision(bs->viewangles, 20, bs->ideal_viewangles)) {
-				//trap_EA_Attack(bs->client);
 			}
 		}
 	}
@@ -5622,14 +5596,14 @@ int AdamFindEnemy(bot_state_t *bs, int currentEnemy)
 		VectorSubtract(entinfo.origin,bs->origin,dir);
 		squareDist = VectorLengthSquared(dir);
 
+		if(squareDist > ADAM_SIGHT_SQUARED) continue;
+		
 		//If the other enemy is further away than the current then skip this check
 		if(currentEnemy >= 0 && squareDist > curSquaredDist) continue;
 	
 		//Notices if the enemy is shooting or we are taking dmg(since there is no lava etc. Else I need to check whether or not the bot is in lava)
-		if(currentEnemy <0 && (healthDecrease || EntityIsShooting(&entinfo)))
-			fov = 360;
-		else
-			fov = 90 +90-(90-(squareDist >Square(810) ? Square(810) : squareDist)/(810*9));
+	    fov = 360;
+
 
 		//visibility 
 		vis = BotEntityVisible(bs->entitynum, bs->eye,bs->viewangles,fov,i);
@@ -5679,25 +5653,20 @@ int AdamFindEnemy(bot_state_t *bs, int currentEnemy)
 			else
 				bs->adamFlag &= ~ADAM_ENEMYFIRE;
 
-			bs->enemyWeapon = ps.weapon;
 		}
 		else
 		{
 			bs->adamFlag &= ~(ADAM_ENEMYCROUCH | ADAM_ENEMYAIR | ADAM_ENEMYFIRE);
-			bs->enemyWeapon = 0;
-		}*/
+		}
 		
-		//VectorNormalize(dir);
-		//VectorCopy(dir,bs->enemyDir);
+		VectorNormalize(dir);
 		bs->squaredEnemyDis = squareDist;
 		return qtrue;
 	}
 	if(!bs->enemy)
 	{
-		//VectorClear(bs->enemyDir);
 		bs->squaredEnemyDis = 0;
-		//bs->adamFlag &= ~(ADAM_ENEMYCROUCH | ADAM_ENEMYAIR| ADAM_ENEMYFIRE);
-		//bs->enemyWeapon = 0;
+		bs->adamFlag &= ~(ADAM_ENEMYCROUCH | ADAM_ENEMYAIR| ADAM_ENEMYFIRE);
 	}
 	return qfalse;
 
@@ -5750,19 +5719,212 @@ void AdamUpdateEnemy(bot_state_t *bs)
 			bs->adamFlag |= ADAM_ENEMYFIRE;
 		else
 			bs->adamFlag &= ~ADAM_ENEMYFIRE;
-
-		bs->enemyWeapon = ps.weapon;
 		
 	}
 	else
 	{
 		bs->adamFlag &= ~(ADAM_ENEMYCROUCH | ADAM_ENEMYAIR | ADAM_ENEMYFIRE);
-		bs->enemyWeapon = 0;
+		
+		BotEntityInfo(i, &entinfo);
+		// is the bot valid
+		if (!entinfo.valid) continue;
+
+		//if the enemy is dead or the enemy is the bot self
+		if (EntityIsDead(&entinfo) || entinfo.number == entityNum) continue;
+
+		if(AdamEntityVisible(entityNum, eye, angles, fov, i))
+		{
+			VectorSubtract(entinfo.origin,origin,dist);	
+			enemyRange = VectorLength(dist);
+			
+			if(enemyRange <= ADAM_SIGHT_DISTANCE)
+				distSum += (ADAM_SIGHT_DISTANCE-enemyRange)/(ADAM_SIGHT_DISTANCE*2.5f);
+		}
+	}
+	// Calculate the sum of whatever we are going to return
+	return distSum;
+}
+float AdamWallSensor(bot_state_t* bs, vec3_t direction)
+{
+	bsp_trace_t trace;
+	vec3_t traceEnd, origin;
+
+	VectorCopy(bs->origin,origin);
+	VectorScale(direction,ADAM_SIGHT_DISTANCE,traceEnd);
+	VectorAdd(traceEnd,origin,traceEnd);
+
+	BotAI_Trace(&trace,origin,NULL,NULL,traceEnd,bs->entitynum,MASK_SOLID);
+
+	return trace.fraction;
+}
+
+
+float AdamEntityVisible(int viewer, vec3_t eye, vec3_t viewangles, float fov, int ent)
+{
+	vec3_t dir;
+	float x,y;
+	x = (random()*2)-1;
+	y = (random()*2)-1;
+	VectorSet(dir,x,y,0);
+	VectorCopy(dir,dirResult);
+	return trap_BotMoveInDirection(bs->ms,dir,400,MOVE_WALK);
+}
+
+void AdamVectors(bot_state_t* bs, vec3_t viewAngles,vec3_t f,vec3_t r,vec3_t b,vec3_t l)
+{
+	int i;
+	float angle, cosPit, sinPit,viewYaw;
+	static float cosYaw, sinYaw;
+	vec3_t dirVec;
+
+	viewYaw = viewAngles[YAW];
+	angle = viewAngles[PITCH] * (M_PI*2 / 360);
+	sinPit = sin(angle);
+	cosPit = cos(angle);
+
+	angle = viewYaw * (M_PI*2 / 360);
+	sinYaw = sin(angle);
+	cosYaw = cos(angle);
+
+	// View forward
+	dirVec[0] = cosPit*cosYaw;
+	dirVec[1] = cosPit*sinYaw;
+	dirVec[2] = -sinPit;
+
+	//bs->isOnTarget = AdamOnTarget(bs,dirVec);
+
+	/*
+	=========================================================
+	DIRECTLY FORWARD [1,0,0]
+	=========================================================
+	*/
+
+	// Forward
+	dirVec[0] = cosYaw;
+	dirVec[1] = sinYaw;
+	dirVec[2] = 0;
+    VectorCopy(dirVec,f);
+	bs->wallRaycast[0] = AdamWallSensor(bs,dirVec);
+	
+
+	// Right
+	dirVec[0] = sinYaw;
+	dirVec[1] = -cosYaw;
+	VectorCopy(dirVec,r);
+	bs->wallRaycast[1] = AdamWallSensor(bs,dirVec);
+
+	// Backward
+	VectorCopy(dirVec,b);
+	dirVec[0] = -cosYaw;
+	dirVec[1] = -sinYaw;
+
+	bs->wallRaycast[2] = AdamWallSensor(bs,dirVec);
+
+	// Left 
+
+	dirVec[0] = -sinYaw;
+	dirVec[1] = cosYaw;
+	VectorCopy(dirVec,l);
+	bs->wallRaycast[3] = AdamWallSensor(bs,dirVec);
+    
+
+	/*
+	=========================================================
+	45 DEGREES SWITCH TO THE RIGHT (FORWARD [0.7,-0.7,0])
+	=========================================================
+	*/
+
+	// Forward+Right
+	dirVec[0] = cosYaw;
+	dirVec[1] = sinYaw;
+	bs->wallRaycast[4] = AdamWallSensor(bs,dirVec);
+
+	// Right + Back
+	dirVec[0] = sinYaw;
+	dirVec[1] = -cosYaw;
+	bs->wallRaycast[5] = AdamWallSensor(bs,dirVec);
+	
+	// Back + Left
+	dirVec[0] = -cosYaw;
+	dirVec[1] = -sinYaw;
+	bs->wallRaycast[6] = AdamWallSensor(bs,dirVec);
+
+	// Left + Front
+	dirVec[0] = -sinYaw;
+	dirVec[1] = cosYaw;
+	bs->wallRaycast[7] = AdamWallSensor(bs,dirVec);
+
+	/*
+	============================================================================
+	ENEMY RADARS [0] = VIEW-DIRECTION [1] = FIELD OF VIEW [2] = RADAR-VALUE [3] = NEAREST ENEMY YAW
+	============================================================================
+	*/
+
+	// FRONT RADAR
+	bs->enemyRadars[0][0] = viewYaw;
+	bs->enemyRadars[0][1] = 15.0f;
+
+	/*
+	15 degrees first front radar set
+	*/
+	// RIGHT 
+	bs->enemyRadars[1][0] = viewYaw+13.75f; 
+	bs->enemyRadars[1][1] = 12.5f;
+
+	// LEFT
+	bs->enemyRadars[2][0] = viewYaw+346.25f; 
+	bs->enemyRadars[2][1] = 12.5f;
+
+
+	/*
+	25 degrees second front radar set
+	*/
+	// RIGHT
+	bs->enemyRadars[3][0] = viewYaw+32.5f; 
+	bs->enemyRadars[3][1] = 25.0f;
+
+	// LEFT
+	bs->enemyRadars[4][0] = viewYaw+327.5f; 
+	bs->enemyRadars[4][1] = 25.0f;	
+
+
+	/*
+	45 degrees diagonal front radars
+	*/
+	// RIGHT 
+	bs->enemyRadars[5][0] = viewYaw+67.5f; 
+	bs->enemyRadars[5][1] = 45.0f;
+
+	// LEFT
+	bs->enemyRadars[6][0] = viewYaw+292.5f; 
+	bs->enemyRadars[6][1] = 45.0f;
+
+
+	/* 
+	90 degrees back radars
+	*/
+	// RIGHT 
+	bs->enemyRadars[7][0] = viewYaw+135.0f; 
+	bs->enemyRadars[7][1] = 90.0f;
+	// LEFT
+	bs->enemyRadars[8][0] = viewYaw+225.0f; 
+	bs->enemyRadars[8][1] = 90.0f;
+
+
+	for(i = 0;i<ADAM_RADAR_AMOUNT;i++)
+	{
+		if(bs->enemyRadars[i][0] > 360.0f)
+			bs->enemyRadars[i][0]-=360.0f;
+
+		bs->enemyRadars[i][2] = 0.0f;
+		bs->enemyRadars[i][3] = 0.0f;
 	}
 
-	VectorCopy(dir,bs->enemyDir);
-	VectorNormalize(bs->enemyDir);*/
-	bs->squaredEnemyDis = squareDist;
+	AdamEnemyRadars(bs);
+	//G_Printf("EnemyRadar front: %f\n",bs->enemyRadars[12][2]);
+	/*G_Printf("Radar values:[%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f]\n",
+	bs->enemyRadars[0][2],bs->enemyRadars[1][2],bs->enemyRadars[2][2],bs->enemyRadars[3][2],bs->enemyRadars[4][2]
+	,bs->enemyRadars[5][2],bs->enemyRadars[6][2],bs->enemyRadars[7][2],bs->enemyRadars[8][2]);*/
 }
 // Only called when there is a bot in the front rangefinder.
 qboolean AdamOnTarget(bot_state_t* bs, vec3_t forward)
@@ -5777,13 +5939,77 @@ qboolean AdamOnTarget(bot_state_t* bs, vec3_t forward)
 	VectorAdd(endPoint,eye,endPoint);
 	
 	BotAI_Trace(&trace,eye,NULL,NULL,endPoint,bs->entitynum,MASK_SHOT);
-
 	//Need to check if it hits another enemy 
-	if (trace.ent == bs->enemy) 
+	if (trace.ent < MAX_CLIENTS)
+	{		
+		bs->framesOnTarget++;
 		return qtrue;
+	}
 	return qfalse;
 }
+void AdamEnemyRadars(bot_state_t* bs)
+{
+	int i, j,clientNum, entityNum, contentMask;
+	float enemyRange, enemyYaw, clientYaw, fractionEnemyRange, absYaw;
+	vec3_t origin,dir,enemyAngle,eye;
+	aas_entityinfo_t entinfo;
+	bsp_trace_t trace;
 
+	contentMask = MASK_SHOT;
+	entityNum = bs->entitynum;
+	clientNum = bs->client;
+	VectorCopy(bs->eye,eye);
+	VectorCopy(bs->origin,origin);
+	clientYaw = bs->viewangles[YAW];
+	for (i = 0; i < level.maxclients; i++) 
+	{
+		if(i == clientNum) continue;
+
+		if (g_entities[i].flags & FL_NOTARGET) continue;
+		
+		BotEntityInfo(i, &entinfo);
+		// is the bot valid
+		if (!entinfo.valid) continue;
+
+		//if the enemy is dead or the enemy is the bot self
+		if (EntityIsDead(&entinfo) || entinfo.number == entityNum) continue;
+
+		VectorSubtract(entinfo.origin,origin,dir);	
+		enemyRange = VectorLengthSquared(dir);
+		
+		if(enemyRange > ADAM_SIGHT_SQUARED) continue;
+		
+		BotAI_Trace(&trace, eye, NULL, NULL, entinfo.origin, entityNum, contentMask);
+	
+		if(trace.ent != entinfo.number)
+			continue;
+		
+		vectoangles(dir, enemyAngle);
+		enemyYaw = AngleMod(enemyAngle[YAW]);
+		absYaw = Q_fabs(clientYaw -enemyYaw); 
+		if(absYaw > 180)
+		 	absYaw = 360-absYaw; // IMPORTANT else the entire left side wont give correct output
+		for(j=0;j<ADAM_RADAR_AMOUNT;j++)
+		{	
+			//G_Printf("Radar direction: %f \t fov: %f \t enemyYaw: %f\n",bs->enemyRadars[j][0], bs->enemyRadars[j][1], enemyYaw);
+			if(!AdamFieldOfVision(bs->enemyRadars[j][0], bs->enemyRadars[j][1], enemyYaw)) continue;
+			
+			//fractionEnemyRange=(ADAM_SIGHT_SQUARED-enemyRange)/(ADAM_SIGHT_SQUARED*1.0f);
+			//if(fractionEnemyRange > bs->enemyRadars[j][2])
+			
+		
+			bs->enemyRadars[j][2]=1.0f;
+			if(j ==  0)
+			{
+				bs->enemyRadars[j][3]=1.0f;
+				break;
+			}
+			if(bs->enemyRadars[j][3] > absYaw)
+				bs->enemyRadars[j][3]= absYaw;
+			break;
+		}
+	}
+}
 float AdamEnemyRadar(bot_state_t* bs, vec3_t direction, float fov)
 {
 	int i, clientNum, entityNum;
@@ -5814,13 +6040,13 @@ float AdamEnemyRadar(bot_state_t* bs, vec3_t direction, float fov)
 		//if the enemy is dead or the enemy is the bot self
 		if (EntityIsDead(&entinfo) || entinfo.number == entityNum) continue;
 
-		if(BotEntityVisible(entityNum, eye, angles, fov, i))
+		if(AdamEntityVisible(entityNum, eye, angles, fov, i))
 		{
 			VectorSubtract(entinfo.origin,origin,dist);	
 			enemyRange = VectorLength(dist);
 			
-			if(enemyRange < ADAM_SIGHT_DISTANCE)
-				distSum += (ADAM_SIGHT_DISTANCE*ADAM_DIST_SCALAR)/enemyRange;
+			if(enemyRange <= ADAM_SIGHT_DISTANCE)
+				distSum += (ADAM_SIGHT_DISTANCE-enemyRange)/(ADAM_SIGHT_DISTANCE*2.5f);
 		}
 	}
 	// Calculate the sum of whatever we are going to return
@@ -5832,7 +6058,7 @@ float AdamWallSensor(bot_state_t* bs, vec3_t direction)
 	vec3_t traceEnd, origin;
 
 	VectorCopy(bs->origin,origin);
-	VectorScale(direction,1000.0f,traceEnd);
+	VectorScale(direction,ADAM_SIGHT_DISTANCE,traceEnd);
 	VectorAdd(traceEnd,origin,traceEnd);
 
 	BotAI_Trace(&trace,origin,NULL,NULL,traceEnd,bs->entitynum,MASK_SOLID);
@@ -5840,180 +6066,140 @@ float AdamWallSensor(bot_state_t* bs, vec3_t direction)
 	return trace.fraction;
 }
 
-int BotMoveInRandDir(bot_state_t* bs, vec3_t dirResult)
+
+float AdamEntityVisible(int viewer, vec3_t eye, vec3_t viewangles, float fov, int ent)
 {
-	vec3_t dir;
-	float x,y;
-	x = (random()*2)-1;
-	y = (random()*2)-1;
-	VectorSet(dir,x,y,0);
-	VectorCopy(dir,dirResult);
-	return trap_BotMoveInDirection(bs->ms,dir,400,MOVE_WALK);
+	int i, contents_mask, passent, hitent, infog, inwater, otherinfog, pc;
+	float squaredfogdist, waterfactor, vis, bestvis;
+	bsp_trace_t trace;
+	aas_entityinfo_t entinfo;
+	vec3_t dir, entangles, start, end, middle;
+
+	BotEntityInfo(ent, &entinfo);
+	if (!entinfo.valid) {
+		return 0;
+	}
+
+	//calculate middle of bounding box
+	VectorAdd(entinfo.mins, entinfo.maxs, middle);
+	VectorScale(middle, 0.5, middle);
+	VectorAdd(entinfo.origin, middle, middle);
+	//check if entity is within field of vision
+	VectorSubtract(middle, eye, dir);
+	vectoangles(dir, entangles);
+
+	if (!AdamFieldOfVision(viewangles[YAW], fov, entangles[YAW])) return 0;
+	//
+	//G_Printf("Field of vision: viewAngles[%.3f,%.3f,%.3f] \t enemyangle[%.3f,%.3f,%.3f]\n",
+	//viewangles[0],viewangles[1],viewangles[2],entangles[0],entangles[1],entangles[2]);
+	pc = trap_AAS_PointContents(eye);
+	infog = (pc & CONTENTS_FOG);
+	inwater = (pc & (CONTENTS_LAVA|CONTENTS_SLIME|CONTENTS_WATER));
+	//
+	bestvis = 0;
+	for (i = 0; i < 3; i++) {
+		//if the point is not in potential visible sight
+		//if (!AAS_inPVS(eye, middle)) continue;
+		//
+		contents_mask = CONTENTS_SOLID|CONTENTS_PLAYERCLIP;
+		passent = viewer;
+		hitent = ent;
+		VectorCopy(eye, start);
+		VectorCopy(middle, end);
+		//if the entity is in water, lava or slime
+		if (trap_AAS_PointContents(middle) & (CONTENTS_LAVA|CONTENTS_SLIME|CONTENTS_WATER)) {
+			contents_mask |= (CONTENTS_LAVA|CONTENTS_SLIME|CONTENTS_WATER);
+		}
+		//if eye is in water, lava or slime
+		if (inwater) {
+			if (!(contents_mask & (CONTENTS_LAVA|CONTENTS_SLIME|CONTENTS_WATER))) {
+				passent = ent;
+				hitent = viewer;
+				VectorCopy(middle, start);
+				VectorCopy(eye, end);
+			}
+			contents_mask ^= (CONTENTS_LAVA|CONTENTS_SLIME|CONTENTS_WATER);
+		}
+		//trace from start to end
+		BotAI_Trace(&trace, start, NULL, NULL, end, passent, contents_mask);
+		//if water was hit
+		waterfactor = 1.0;
+		//note: trace.contents is always 0, see BotAI_Trace
+		if (trace.contents & (CONTENTS_LAVA|CONTENTS_SLIME|CONTENTS_WATER)) {
+			//if the water surface is translucent
+			if (1) {
+				//trace through the water
+				contents_mask &= ~(CONTENTS_LAVA|CONTENTS_SLIME|CONTENTS_WATER);
+				BotAI_Trace(&trace, trace.endpos, NULL, NULL, end, passent, contents_mask);
+				waterfactor = 0.5;
+			}
+		}
+		//if a full trace or the hitent was hit
+		if (trace.fraction >= 1 || trace.ent == hitent) {
+			//check for fog, assuming there's only one fog brush where
+			//either the viewer or the entity is in or both are in
+			otherinfog = (trap_AAS_PointContents(middle) & CONTENTS_FOG);
+			if (infog && otherinfog) {
+				VectorSubtract(trace.endpos, eye, dir);
+				squaredfogdist = VectorLengthSquared(dir);
+			}
+			else if (infog) {
+				VectorCopy(trace.endpos, start);
+				BotAI_Trace(&trace, start, NULL, NULL, eye, viewer, CONTENTS_FOG);
+				VectorSubtract(eye, trace.endpos, dir);
+				squaredfogdist = VectorLengthSquared(dir);
+			}
+			else if (otherinfog) {
+				VectorCopy(trace.endpos, end);
+				BotAI_Trace(&trace, eye, NULL, NULL, end, viewer, CONTENTS_FOG);
+				VectorSubtract(end, trace.endpos, dir);
+				squaredfogdist = VectorLengthSquared(dir);
+			}
+			else {
+				//if the entity and the viewer are not in fog assume there's no fog in between
+				squaredfogdist = 0;
+			}
+			//decrease visibility with the view distance through fog
+			vis = 1 / ((squaredfogdist * 0.001) < 1 ? 1 : (squaredfogdist * 0.001));
+			//if entering water visibility is reduced
+			vis *= waterfactor;
+			//
+			if (vis > bestvis) bestvis = vis;
+			//if pretty much no fog
+			if (bestvis >= 0.95) return bestvis;
+		}
+		//check bottom and top of bounding box as well
+		if (i == 0) middle[2] += entinfo.mins[2];
+		else if (i == 1) middle[2] += entinfo.maxs[2] - entinfo.mins[2];
+	}
+	return bestvis;
+
+
 }
 
-void AdamVectors(bot_state_t* bs, vec3_t viewAngles)
+qboolean AdamFieldOfVision(float viewYaw, float fov, float yaw)
 {
-	float angle, cosPit, sinPit;
-	static float cosYaw, sinYaw;
-	vec3_t dirVec;
+	float diff,angle;
 
-	angle = viewAngles[PITCH] * (M_PI*2 / 360);
-	sinPit = sin(angle);
-	cosPit = cos(angle);
-
-	angle = viewAngles[YAW] * (M_PI*2 / 360);
-	sinYaw = sin(angle);
-	cosYaw = cos(angle);
-
-	// View forward
-	dirVec[0] = cosPit*cosYaw;
-	dirVec[1] = cosPit*sinYaw;
-	dirVec[2] = -sinPit;
-
-	bs->isOnTarget = AdamOnTarget(bs,dirVec) ? 1 : 0;
-	/*
-	=========================================================
-	DIRECTLY FORWARD [1,0,0]
-	=========================================================
-	*/
-
-	// Forward
-	dirVec[0] = cosYaw;
-	dirVec[1] = sinYaw;
-	dirVec[2] = 0;
-    
-	bs->wallRaycast[0] = AdamWallSensor(bs,dirVec);
-
-	// Right
-	dirVec[0] = sinYaw;
-	dirVec[1] = -cosYaw;
-
-	bs->wallRaycast[1] = AdamWallSensor(bs,dirVec);
-
-	// Backward
-
-	dirVec[0] = -cosYaw;
-	dirVec[1] = -sinYaw;
-
-	bs->wallRaycast[2] = AdamWallSensor(bs,dirVec);
-
-	// Left 
-
-	dirVec[0] = -sinYaw;
-	dirVec[1] = cosYaw;
-
-	bs->wallRaycast[3] = AdamWallSensor(bs,dirVec);
-    
-
-	/*
-	=========================================================
-	45 DEGREES SWITCH TO THE RIGHT (FORWARD [0.7,-0.7,0])
-	=========================================================
-	*/
-
-	angle -= FIRSTRADAR; // Need to preprocess 
-	cosYaw = cos(angle);
-	sinYaw = sin(angle);
-
-	// Forward+Right
-	dirVec[0] = cosYaw;
-	dirVec[1] = sinYaw;
-    
-	bs->wallRaycast[4] = AdamWallSensor(bs,dirVec);
-
-	// Right + Back
-	dirVec[0] = sinYaw;
-	dirVec[1] = -cosYaw;
-
-	bs->wallRaycast[5] = AdamWallSensor(bs,dirVec);
-	bs->enemyRadars[0] = AdamEnemyRadar(bs,dirVec,90.0f);
-
-	// Back + Left
-
-	dirVec[0] = -cosYaw;
-	dirVec[1] = -sinYaw;
-
-	bs->wallRaycast[6] = AdamWallSensor(bs,dirVec);
-	bs->enemyRadars[1] = AdamEnemyRadar(bs,dirVec,90.0f);
-
-	// Left + Front
-
-	dirVec[0] = -sinYaw;
-	dirVec[1] = cosYaw;
-
-	bs->wallRaycast[7] = AdamWallSensor(bs,dirVec);
-
-	/*
-	=========================================================
-	ENEMY RADARS
-	=========================================================
-	*/
-	
-	// Two 45 degrees radars
-	angle -= SECONDRADAR;
-	sinYaw = sin(angle);
-	cosYaw = cos(angle);
-
-	// Right of the front vector
-
-	dirVec[0] = cosYaw;
-	dirVec[1] = sinYaw;
-
-	bs->enemyRadars[2] = AdamEnemyRadar(bs,dirVec,45.0f);
-
-	// Left of the front vector
-	dirVec[1] = -sinYaw;
-
-	bs->enemyRadars[3] = AdamEnemyRadar(bs,dirVec,45.0f);
-
-	// Two 40 degrees angle
-	angle += THIRDRADAR;
-	sinYaw = sin(angle);
-	cosYaw = cos(angle);
-
-	dirVec[0] = cosYaw;
-	dirVec[1] = sinYaw;
-
-	bs->enemyRadars[4] = AdamEnemyRadar(bs,dirVec,30.0f);
-
-	dirVec[1] = -sinYaw;
-
-	bs->enemyRadars[5] = AdamEnemyRadar(bs,dirVec,30.0f);
-
-	// Total of  15 degrees left here angle
-	angle += FOURTHRADAR;
-	sinYaw = sin(angle);
-	cosYaw = cos(angle);
-
-	dirVec[0] = cosYaw;
-	dirVec[1] = sinYaw;
-
-	bs->enemyRadars[6] = AdamEnemyRadar(bs,dirVec,10.0f);
-
-	dirVec[1] = -sinYaw;
-
-	bs->enemyRadars[7] = AdamEnemyRadar(bs,dirVec,10.0f);
-
-	// Two 40 degrees angle
-	angle += FIFTHRADAR;
-	sinYaw = sin(angle);
-	cosYaw = cos(angle);
-
-	dirVec[0] = cosYaw;
-	dirVec[1] = sinYaw;
-
-	bs->enemyRadars[8] = AdamEnemyRadar(bs,dirVec,3.5f);
-
-	dirVec[1] = -sinYaw;
-
-	bs->enemyRadars[9] = AdamEnemyRadar(bs,dirVec,3.5f);
-
-	// The two smallest angles degrees angle
-	angle += SIXTHRADAR;
-	sinYaw = sin(angle);
-	cosYaw = cos(angle);
-
-	dirVec[0] = cosYaw;
+	angle = viewYaw;
+	diff = yaw - angle;
+	if (yaw > angle) {
+		if (diff > 180.0) diff -= 360.0;
+	}
+	else {
+		if (diff < -180.0) diff += 360.0;
+	}
+	if (diff > 0) {
+		if (diff > fov * 0.5) return qfalse;
+	}
+	else {
+		if (diff < -fov * 0.5) return qfalse;
+	}
+	return qtrue;
+}
+qboolean AdamEnemyInRange(bot_state_t* bs)
+{
+	int i;
 	dirVec[1] = sinYaw;
 
 	bs->enemyRadars[10] = AdamEnemyRadar(bs,dirVec,1.5f);
@@ -6022,3 +6208,4 @@ void AdamVectors(bot_state_t* bs, vec3_t viewAngles)
 
 	bs->enemyRadars[11] = AdamEnemyRadar(bs,dirVec,1.5f);
 }
+#endif
