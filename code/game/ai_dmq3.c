@@ -3317,7 +3317,6 @@ void BotAimAtEnemy(bot_state_t *bs) {
 	//
 	aim_skill = trap_Characteristic_BFloat(bs->character, CHARACTERISTIC_AIM_SKILL, 0, 1);
 	aim_accuracy = trap_Characteristic_BFloat(bs->character, CHARACTERISTIC_AIM_ACCURACY, 0, 1);
-	G_Printf("Aim_skill %f, aim_accuracy %f \n",aim_skill,aim_accuracy);
 	//
 	if (aim_skill > 0.95) {
 		//don't aim too early

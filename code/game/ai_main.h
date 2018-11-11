@@ -90,8 +90,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define MAX_PROXMINES				64
 
 // Adaptive Changes (non-adam)
-#define ADAPTATION_ACTIVE
-#define ADAPTATION_TIME
+//#define ADAPTATION_ACTIVE
+//#define ADAPTATION_TIME
 //#define ADAPTATION_AFFECTIVE
 #define ADAPT_INTERVAL				30
 
@@ -113,9 +113,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define ADAM_ENEMYFIRE		0x00000010
 
 // ADAM Training
-//#define ADAM_ACTIVE
+#define ADAM_ACTIVE
 //#define ADAM_AFFECTIVE
-//#define ADAM_TRAINING
+#define ADAM_TRAINING
 //#define ADAM_DEBUG			
 
 //check points

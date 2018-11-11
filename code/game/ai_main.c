@@ -1307,8 +1307,9 @@ int BotAISetupClient(int client, struct bot_settings_s *settings, qboolean resta
 		BotReadSessionData(bs);
 	}
 	//bot has been setup successfully
-
+	#ifdef ADAPTATION_ACTIVE
 	bs->elaspedTime = FloatTime()+ADAPT_INTERVAL;
+	#endif
 	return qtrue;
 }
 
