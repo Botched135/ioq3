@@ -1473,6 +1473,7 @@ void AdaptiveUpdate(bot_state_t* bs, float skill)
 
 
 	bs->ms = trap_BotAllocMoveState();
+	
 	bs->cs = chatstate;
 	memcpy(&bs->cur_ps, &ps, sizeof(playerState_t));
 	memcpy(&bs->settings, &settings, sizeof(bot_settings_t));
@@ -1487,13 +1488,8 @@ void AdaptiveUpdate(bot_state_t* bs, float skill)
 	bs->walker = trap_Characteristic_BFloat(bs->character, CHARACTERISTIC_WALKER, 0, 1);
 
 	BotScheduleBotThink();
+	BotReadSessionData(bs);
 	G_Printf("Bot current char: %s\n", filename);
-	//reset several states
-	if (bs->ms) trap_BotResetMoveState(bs->ms);
-	if (bs->gs) trap_BotResetGoalState(bs->gs);
-	if (bs->ws) trap_BotResetWeaponState(bs->ws);
-	if (bs->gs) trap_BotResetAvoidGoals(bs->gs);
-	if (bs->ms) trap_BotResetAvoidReach(bs->ms);
 }
 
 /*
