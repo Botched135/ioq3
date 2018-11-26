@@ -1419,11 +1419,11 @@ void BotResetState(bot_state_t *bs) {
 
 void AdaptiveUpdate(bot_state_t* bs, float skill)
 {
-	char filename[144];
+	char filename[144], name[144], gender[144];
 	int client, entitynum, inuse, adamFlag, enemy;
 	int movestate, goalstate, chatstate, weaponstate;
 	bot_settings_t settings;
-	int character, errnum;
+	int errnum;
 	playerState_t ps;					//current player state
 	float entergame_time;
 
@@ -1440,10 +1440,9 @@ void AdaptiveUpdate(bot_state_t* bs, float skill)
 	inuse = bs->inuse;
 	client = bs->client;
 	entitynum = bs->entitynum;
-	chatstate = bs->cs;
-	character = trap_BotLoadCharacter(filename, settings.skill);
 
-	//reset several states
+	//Free several states
+	if (bs->character) trap_BotFreeCharacter(bs->character);
 	if (bs->ms) trap_BotFreeMoveState(bs->ms);
 	if (bs->gs)
 	{
@@ -1451,6 +1450,7 @@ void AdaptiveUpdate(bot_state_t* bs, float skill)
 		trap_BotFreeGoalState(bs->gs);
 	}
 	if (bs->ws) trap_BotFreeWeaponState(bs->ws);
+	if (bs->cs) trap_BotFreeChatState(bs->cs);
 
 	entergame_time = bs->entergame_time;
 	adamFlag = bs->adamFlag;	
@@ -1460,8 +1460,7 @@ void AdaptiveUpdate(bot_state_t* bs, float skill)
 	BotFreeWaypoints(bs->patrolpoints);
 	//reset the whole state
 	memset(bs, 0, sizeof(bot_state_t));
-
-	bs->character = character;
+	bs->character = trap_BotLoadCharacter(filename, settings.skill);;
 	bs->gs = trap_BotAllocGoalState(client);
 	//load the item weights
 	trap_Characteristic_String(bs->character, CHARACTERISTIC_ITEMWEIGHTS, filename, sizeof(filename));
@@ -1474,7 +1473,17 @@ void AdaptiveUpdate(bot_state_t* bs, float skill)
 
 
 	bs->ms = trap_BotAllocMoveState();
-	bs->cs = chatstate;
+	bs->cs = trap_BotAllocChatState();
+	trap_Characteristic_String(bs->character, CHARACTERISTIC_CHAT_FILE, filename, sizeof(filename));
+	trap_Characteristic_String(bs->character, CHARACTERISTIC_CHAT_NAME, name, sizeof(name));
+	errnum = trap_BotLoadChatFile(bs->cs, filename, name);
+
+	//get the gender characteristic
+	trap_Characteristic_String(bs->character, CHARACTERISTIC_GENDER, gender, sizeof(gender));
+	//set the chat gender
+	if (*gender == 'f' || *gender == 'F') trap_BotSetChatGender(bs->cs, CHAT_GENDERFEMALE);
+	else if (*gender == 'm' || *gender == 'M') trap_BotSetChatGender(bs->cs, CHAT_GENDERMALE);
+	else trap_BotSetChatGender(bs->cs, CHAT_GENDERLESS);
 	memcpy(&bs->cur_ps, &ps, sizeof(playerState_t));
 	memcpy(&bs->settings, &settings, sizeof(bot_settings_t));
 	bs->inuse = inuse;
@@ -1482,19 +1491,14 @@ void AdaptiveUpdate(bot_state_t* bs, float skill)
 	bs->client = client;
 	bs->entitynum = entitynum;
 	bs->enemy = enemy;
-	bs->character = character;	
 	bs->entergame_time = entergame_time;
 	bs->adamFlag = adamFlag;
 	bs->walker = trap_Characteristic_BFloat(bs->character, CHARACTERISTIC_WALKER, 0, 1);
 
 	BotScheduleBotThink();
+	BotReadSessionData(bs);
 	G_Printf("Bot current char: %s\n", filename);
-	//reset several states
-	if (bs->ms) trap_BotResetMoveState(bs->ms);
-	if (bs->gs) trap_BotResetGoalState(bs->gs);
-	if (bs->ws) trap_BotResetWeaponState(bs->ws);
-	if (bs->gs) trap_BotResetAvoidGoals(bs->gs);
-	if (bs->ms) trap_BotResetAvoidReach(bs->ms);
+
 }
 
 /*
@@ -1559,7 +1563,7 @@ int BotAIStartFrame(int time) {
 	
 	
 	G_CheckBotSpawn();
-	
+
 	#ifdef ADAM_ACTIVE
 		adaptiveAgents = GetAdaptiveAgents(botstates,AdamAgentIndices);
 		if(adaptiveAgents)
@@ -1569,7 +1573,7 @@ int BotAIStartFrame(int time) {
 			if(strlen(pipeName) == 0)
 			{
 				trap_Adam_Com_Get_PipeName(pipeName);
-				#ifdef ADAM_TRAINING
+				#if defined(ADAM_TRAINING) || defined(ADAM_TRAINING_DEBUG)
 				AdamSetTrainingTime(-1.0f);
 				#endif
 				G_Printf("%f : Pipename in AI_MAIN: %s\n",FloatTime(),pipeName);
@@ -1582,7 +1586,7 @@ int BotAIStartFrame(int time) {
 
 	#endif
 	#ifdef ADAPTATION_TIME
-			adaptiveUpdate = 1;
+			adaptiveUpdate = -1;
 	#endif
 	#ifdef ADAM_ACTIVE
 				// Check if it needs to pause for a new generation
@@ -1618,7 +1622,7 @@ int BotAIStartFrame(int time) {
 	if (bot_pause.integer) {
 		G_Printf("Pausing \n");
 		// execute bot user commands every frame
-		#ifdef ADAM_TRAINING
+		#if defined(ADAM_TRAINING) || defined(ADAM_TRAINING_DEBUG) 
 		AdamSetTrainingTime(-1.0f);
 		#endif
 		for( i = 0; i < MAX_CLIENTS; i++ ) {
@@ -1636,8 +1640,8 @@ int BotAIStartFrame(int time) {
 			botstates[i]->lastucmd.upmove = 0;
 			botstates[i]->lastucmd.buttons = 0;
 			botstates[i]->lastucmd.serverTime = time;
-			#ifdef ADAM_TRAINING
-				fitnessOutput[i][0] = 0;
+			#if defined(ADAM_TRAINING) || defined(ADAM_TRAINING_DEBUG)
+			fitnessOutput[i][0] = 0;
 				//RESET THE BOT
 				if(botstates[i]->adamFlag & (ADAM_ADAPTIVE | ADAM_RESET))
 				{
@@ -1651,7 +1655,8 @@ int BotAIStartFrame(int time) {
 					tempBattleFrames = botstates[i]->frameInBattle > 0 ? botstates[i]->frameInBattle/300.0f : 1.0f;
 					shotsHits = botstates[i]->lasthitcount-botstates[i]->lastGenerationShotHit;
 					fitnessOutput[i][0] = 2;
-					fitnessOutput[i][1] = botstates[i]->fitnessScore/botstates[i]->frameInBattle;
+					fitnessOutput[i][1] = botstates[i]->frameInBattle > 20 ? botstates[i]->fitnessScore/botstates[i]->frameInBattle : 0.0f;
+					
 					// Accuracy
 					/*
 					fitnessOutput[i][1] = botstates[i]->shotsTaken > 0 ? 
@@ -1676,17 +1681,19 @@ int BotAIStartFrame(int time) {
 					botstates[i]->shotsTaken = 0;
 					botstates[i]->moveFaliures =0;
 					botstates[i]->frameInBattle = 0;
-					botstates[i]->fitnessScore = 0;
+					botstates[i]->fitnessScore = 0.0f;
 					g_entities[botstates[i]->entitynum].health = 0;
 					//VectorClear(botstates[i]->lastMove);
 					AdamEnter_Respawn(botstates[i]);
+					#ifdef ADAM_TRAINING_DEBUG 
+					G_Printf("Bot number %i has a fitness of %f\n", botstates[i]->client,fitnessOutput[i][1]);
+					#endif
 					
 				}
-				
 			#endif
 			trap_BotUserCommand(botstates[i]->client, &botstates[i]->lastucmd);
 		}
-		#ifdef ADAM_TRAINING 
+		#if defined(ADAM_TRAINING) || defined(ADAM_TRAINING_DEBUG)
 			if(adaptiveAgents)
 			{
 				//Send Fitness data

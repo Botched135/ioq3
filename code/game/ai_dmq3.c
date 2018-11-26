@@ -2208,6 +2208,7 @@ float BotAggression(bot_state_t *bs) {
 			return 70;
 		}
 	}
+	//if(bs->weaponnum == WP_MACHINEGUN) return 70;
 	//if the enemy is located way higher than the bot
 	if (bs->inventory[ENEMY_HEIGHT] > 200) return 0;
 	//if the bot is very low on health
@@ -5557,31 +5558,24 @@ void AdamBotMapScripts(bot_state_t *bs)
 }
 int AdamFindEnemy(bot_state_t *bs, int currentEnemy)
 {
-	int i, healthDecrease;
+	int i, healthDecrease,entityNum,contentMask;
 	float squareDist, curSquaredDist, fov, vis;
 	aas_entityinfo_t entinfo, curenemyinfo;
 	playerState_t ps;
-	vec3_t dir, angles;
+	bsp_trace_t trace;
+	vec3_t dir, angles, eye;
 
+	contentMask = MASK_SHOT;
+	entityNum = bs->entitynum;
+	VectorCopy(bs->eye,eye);
 	healthDecrease = bs->lasthealth > bs->inventory[INVENTORY_HEALTH]+1; //To avoid giving the bot 360 fov when > 100 hp
 
 	bs->lasthealth = bs->inventory[INVENTORY_HEALTH];
-
-	if(currentEnemy >= 0)
-	{
-		BotEntityInfo(currentEnemy,&curenemyinfo);
-		VectorSubtract(curenemyinfo.origin,bs->origin,dir);
-		curSquaredDist = VectorLengthSquared(dir);
-	}
-	else
-		curSquaredDist = 0;
 
 	// Currently this just finds the first, the best enemy and runs
 	for(i = 0;i< level.maxclients;i++)
 	{
 		if(i == bs->client) continue;
-
-		if(i == currentEnemy) continue;
 
 		if(g_entities[i].flags & FL_NOTARGET) continue;
 
@@ -5596,35 +5590,14 @@ int AdamFindEnemy(bot_state_t *bs, int currentEnemy)
 		squareDist = VectorLengthSquared(dir);
 
 		if(squareDist > ADAM_SIGHT_SQUARED) continue;
-		
-		//If the other enemy is further away than the current then skip this check
-		if(currentEnemy >= 0 && squareDist > curSquaredDist) continue;
 	
 		//Notices if the enemy is shooting or we are taking dmg(since there is no lava etc. Else I need to check whether or not the bot is in lava)
-	    fov = 360;
-
 
 		//visibility 
-		vis = BotEntityVisible(bs->entitynum, bs->eye,bs->viewangles,fov,i);
-		if(vis <=0) continue;
-
-		// If there is no one shooting and enemy is far away
-		if(currentEnemy < 0 && squareDist > Square(100) && !healthDecrease && !EntityIsShooting(&entinfo))
-		{
-			VectorSubtract(bs->origin,entinfo.origin,dir);
-			vectoangles(dir,angles);
-
-			//if it is outside of enemy's field of vision
-			if(!InFieldOfVision(entinfo.angles,90,angles))
-			{
-				BotUpdateBattleInventory(bs,i);
-			}
-		}
-		//found enemy
-		if(currentEnemy >= 0) 
-			bs->enemysight_time = FloatTime()-2; // hmm consider this
-		else
-			bs->enemysight_time = FloatTime();
+		BotAI_Trace(&trace, eye, NULL, NULL, entinfo.origin, entityNum, contentMask);
+	
+		if(trace.ent != entinfo.number)
+			continue;
 
 		bs->enemy = entinfo.number;
 		bs->enemysuicide = qfalse;
@@ -5918,8 +5891,8 @@ qboolean AdamOnTarget(bot_state_t* bs, vec3_t forward)
 }
 void AdamEnemyRadars(bot_state_t* bs)
 {
-	int i, j,clientNum, entityNum, contentMask;
-	float enemyRange, enemyYaw, clientYaw, fractionEnemyRange, absYaw;
+	int i, j,clientNum, entityNum, contentMask, amount;
+	float enemyRange, enemyYaw, clientYaw, fractionEnemyRange, absYaw, activeRadar;
 	vec3_t origin,dir,enemyAngle,eye;
 	aas_entityinfo_t entinfo;
 	bsp_trace_t trace;
@@ -5945,7 +5918,7 @@ void AdamEnemyRadars(bot_state_t* bs)
 
 		VectorSubtract(entinfo.origin,origin,dir);	
 		enemyRange = VectorLengthSquared(dir);
-		
+
 		if(enemyRange > ADAM_SIGHT_SQUARED) continue;
 		
 		BotAI_Trace(&trace, eye, NULL, NULL, entinfo.origin, entityNum, contentMask);
@@ -5958,16 +5931,20 @@ void AdamEnemyRadars(bot_state_t* bs)
 		absYaw = Q_fabs(clientYaw -enemyYaw); 
 		if(absYaw > 180)
 		 	absYaw = 360-absYaw; // IMPORTANT else the entire left side wont give correct output
+
+
+		activeRadar = entinfo.number == bs->enemy ? 1.0f : 0.0f;
 		for(j=0;j<ADAM_RADAR_AMOUNT;j++)
 		{	
 			//G_Printf("Radar direction: %f \t fov: %f \t enemyYaw: %f\n",bs->enemyRadars[j][0], bs->enemyRadars[j][1], enemyYaw);
+
 			if(!AdamFieldOfVision(bs->enemyRadars[j][0], bs->enemyRadars[j][1], enemyYaw)) continue;
-			
+
 			//fractionEnemyRange=(ADAM_SIGHT_SQUARED-enemyRange)/(ADAM_SIGHT_SQUARED*1.0f);
 			//if(fractionEnemyRange > bs->enemyRadars[j][2])
-			
 		
-			bs->enemyRadars[j][2]=1.0f;
+			if(bs->enemyRadars[j][2] < 1.0f)
+				bs->enemyRadars[j][2]=activeRadar;
 			if(j ==  0)
 			{
 				bs->enemyRadars[j][3]=1.0f;
@@ -5977,6 +5954,7 @@ void AdamEnemyRadars(bot_state_t* bs)
 				bs->enemyRadars[j][3]= absYaw;
 			break;
 		}
+
 	}
 }
 float AdamEnemyRadar(bot_state_t* bs, vec3_t direction, float fov)

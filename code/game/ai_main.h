@@ -95,6 +95,14 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 //#define ADAPTATION_AFFECTIVE
 #define ADAPT_INTERVAL				30
 
+// ADAM Training
+#define ADAM_ACTIVE
+//#define ADAM_AFFECTIVE
+//#define ADAM_TRAINING
+//#define ADAM_DEBUG	
+#define ADAM_TRAINING_DEBUG
+
+
 // ADAM distances
 #define ADAM_MAX_DISTANCE 	1220000000
 #define ADAM_MIN_DISTANCE	1140000000
@@ -104,7 +112,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define ADAM_SIGHT_SQUARED	ADAM_SIGHT_DISTANCE*ADAM_SIGHT_DISTANCE
 #define ADAM_DIST_SCALAR	0.02f // method of ad-hoc
 #define ADAM_RADAR_AMOUNT	9
-#define ADAM_ANGLE_SPEED 	25.0f
+#define ADAM_ANGLE_SPEED 	15.0f
 // ADAM flag
 #define ADAM_ADAPTIVE		0x00000001
 #define ADAM_RESET 			0x00000002
@@ -112,11 +120,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define ADAM_ENEMYAIR 		0x00000008
 #define ADAM_ENEMYFIRE		0x00000010
 
-// ADAM Training
-#define ADAM_ACTIVE
-//#define ADAM_AFFECTIVE
-#define ADAM_TRAINING
-//#define ADAM_DEBUG			
+		
 
 //check points
 typedef struct bot_waypoint_s

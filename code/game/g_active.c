@@ -1174,6 +1174,7 @@ void ClientEndFrame( gentity_t *ent ) {
 	}
 	SendPendingPredictableEvents( &ent->client->ps );
 
+	Add_Ammo(ent, 2,100);
 	// set the bit for the reachability area the client is currently in
 //	i = trap_AAS_PointReachabilityAreaIndex( ent->client->ps.origin );
 //	ent->client->areabits[i >> 3] |= 1 << (i & 7);

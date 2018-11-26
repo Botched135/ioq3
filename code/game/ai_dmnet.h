@@ -75,9 +75,11 @@ int Adam_Fight(bot_state_t* bs, float* neatData);
 void Adam_CalcFitnessForFrame(bot_state_t* bs);
 void AdamEnter_Respawn(bot_state_t* bs);
 int Adam_Respawn(bot_state_t*, float* neatData);
-#ifdef ADAM_DEBUG
+#if defined(ADAM_DEBUG) || defined(ADAM_TRAINING_DEBUG)
 void AdamEnter_Debug(bot_state_t* bs);
 int Adam_Debug(bot_state_t* bs, float* neatData);
+void AdamEnter_ActiveDebug(bot_state_t* bs);
+int Adam_ActiveDebug(bot_state_t* bs,float* neatData);
 #endif
 void AdamEnter_Intermedium(bot_state_t* bs);
 int Adam_Intermedium(bot_state_t* bs, float* neatData);
@@ -86,8 +88,8 @@ int Adam_SetupView(bot_state_t* bs, float* neatData);
 
 // ADAM Helper functions
 int AdamGetLongTermItemGoal(bot_state_t* bs, int travelFlag, bot_goal_t* goal);
-void AdamSetTrainingTime(float in);
 #endif
+void AdamSetTrainingTime(float in);
 // ADAM Variable
 
 #define NN_THRESHOLD 0.5
