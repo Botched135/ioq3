@@ -1559,6 +1559,9 @@ int BotAIStartFrame(int time) {
 	#ifdef ADAPTATION_ACTIVE
 	int adaptiveUpdate;
 	#endif
+	#if defined(ADAM_TRAINING) || defined(ADAM_TRAINING_DEBUG)
+	float targetArray[10];
+	#endif
 
 	
 	
@@ -1575,6 +1578,7 @@ int BotAIStartFrame(int time) {
 				trap_Adam_Com_Get_PipeName(pipeName);
 				#if defined(ADAM_TRAINING) || defined(ADAM_TRAINING_DEBUG)
 				AdamSetTrainingTime(-1.0f);
+				GenerateAimTargets(targetArray,10,80.0f,30.0f);
 				#endif
 				G_Printf("%f : Pipename in AI_MAIN: %s\n",FloatTime(),pipeName);
 			}
@@ -1622,7 +1626,8 @@ int BotAIStartFrame(int time) {
 	if (bot_pause.integer) {
 		G_Printf("Pausing \n");
 		// execute bot user commands every frame
-		#if defined(ADAM_TRAINING) || defined(ADAM_TRAINING_DEBUG) 
+		#if defined(ADAM_TRAINING) || defined(ADAM_TRAINING_DEBUG)
+		GenerateAimTargets(targetArray,10,80.0f,30.0f);
 		AdamSetTrainingTime(-1.0f);
 		#endif
 		for( i = 0; i < MAX_CLIENTS; i++ ) {
@@ -2491,5 +2496,23 @@ int GetAdaptiveAgents(bot_state_t** bs, int* AdamIndices)
 		}		
 	}
 	return amount;
+}
+
+void GenerateAimTargets(float* targetArray, int amount, float minDiff, float rnd_range)
+{
+	int i;
+	float diff_rnd,range_rnd, diff_range, temp;
+	
+	diff_range = 360.0f-(2.0f*minDiff);
+	range_rnd = crandom()*(rnd_range/2.0f);
+	//Generates a point, and randomize from the range
+	targetArray[0] = 180.0f+range_rnd;
+	for(i = 1; i < amount; i++)
+	{
+		diff_rnd = (random()*diff_range)+minDiff;
+		temp = targetArray[i-1]+diff_rnd;
+		if(temp >360.0f) temp -= 360.0f;
+		targetArray[i] = temp;
+	}
 }
 #endif
