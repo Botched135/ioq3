@@ -65,31 +65,41 @@ void BotDumpNodeSwitches(bot_state_t *bs);
 ADAM NODES
 ==========================
 */
-#ifdef ADAM_ACTIVE
+#if defined(ADAM_ACTIVE) || defined(ADAM_DEBUG)
 void AdamEnter_Seek(bot_state_t* bs);
 int Adam_Seek(bot_state_t* bs, float* neatData);
 void AdamEnter_NearbySeek(bot_state_t* bs);
 int Adam_NearbySeek(bot_state_t* bs, float* neatData);
 void AdamEnter_Fight(bot_state_t* bs);
 int Adam_Fight(bot_state_t* bs, float* neatData);
-void Adam_CalcFitnessForFrame(bot_state_t* bs);
 void AdamEnter_Respawn(bot_state_t* bs);
 int Adam_Respawn(bot_state_t*, float* neatData);
+#endif
 #if defined(ADAM_DEBUG) || defined(ADAM_TRAINING_DEBUG)
 void AdamEnter_Debug(bot_state_t* bs);
 int Adam_Debug(bot_state_t* bs, float* neatData);
 void AdamEnter_ActiveDebug(bot_state_t* bs);
 int Adam_ActiveDebug(bot_state_t* bs,float* neatData);
 #endif
+#if defined(ADAM_TRAINING) || defined(ADAM_TRAINING_DEBUG)
+void AdamEnter_Training(bot_state_t* bs);
+int Adam_Training(bot_state_t* bs,float* neatData);
+void AdamEnter_Wait(bot_state_t* bs);
+int Adam_Wait(bot_state_t* bs, float* neatData);
+int AdamSetTrainingRadars(bot_state_t* bs);
+void AdamTrainingFitness(bot_state_t* bs);
 void AdamEnter_Intermedium(bot_state_t* bs);
 int Adam_Intermedium(bot_state_t* bs, float* neatData);
 void AdamEnter_SetupView(bot_state_t* bs);
 int Adam_SetupView(bot_state_t* bs, float* neatData);
+void Adam_CalcFitnessForFrame(bot_state_t* bs);
+#endif
+// ADAM Helper functions and general nodes
+#if defined(ADAM_ACTIVE) || defined(ADAM_DEBUG)
 
-// ADAM Helper functions
 int AdamGetLongTermItemGoal(bot_state_t* bs, int travelFlag, bot_goal_t* goal);
 #endif
 void AdamSetTrainingTime(float in);
 // ADAM Variable
 
-#define NN_THRESHOLD 0.5
+#define NN_THRESHOLD 0.5f

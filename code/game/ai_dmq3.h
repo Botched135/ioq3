@@ -178,7 +178,7 @@ int BotPointAreaNum(vec3_t origin);
 void BotMapScripts(bot_state_t *bs);
 
 // FOR ADAM
-#ifdef ADAM_ACTIVE
+#if defined(ADAM_ACTIVE) || defined(ADAM_DEBUG)
 void AdamBotIntermission(bot_state_t *bs);
 void AdamBotMapScripts(bot_state_t *bs);
 int  AdamFindEnemy(bot_state_t *bs, int currentEnemy);

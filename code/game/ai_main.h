@@ -98,10 +98,12 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // ADAM Training
 #define ADAM_ACTIVE
 //#define ADAM_AFFECTIVE
-//#define ADAM_TRAINING
+#define ADAM_TRAINING
 //#define ADAM_DEBUG	
-#define ADAM_TRAINING_DEBUG
+//#define ADAM_TRAINING_DEBUG
 
+// ADAM-Training Values
+#define ADAM_TRAINING_TARGETS 10
 
 // ADAM distances
 #define ADAM_MAX_DISTANCE 	1220000000
@@ -308,7 +310,14 @@ typedef struct bot_state_s
 	//FOR ADAM AGENT
 	int adamFlag;
 	int (*adamNode)(struct bot_state_s* bs,float* neatData);
+	#if defined(ADAM_TRAINING) || defined(ADAM_TRAINING_DEBUG)
+	float aimTargets[10];
+	float targetDist;
+	float startYaw;
+	float prevYaw;
+	int aimIndex;
 
+	#endif 
 	#if defined(ADAM_ACTIVE) || defined(ADAM_DEBUG)
 	int squaredEnemyDis;
 	int frameInBattle;
@@ -357,7 +366,7 @@ int		BotTeamLeader(bot_state_t *bs);
 
 // ADAM functions
 void AdaptiveUpdate(bot_state_t* bs, float skill);
-#ifdef ADAM_ACTIVE
+#if defined(ADAM_ACTIVE) || defined(ADAM_DEBUG)
 int BotAdamAgent(int clientNum, float thinktime,float *neatInput); 
 void BotStateToNEAT(float neatArray[MAX_CLIENTS][ADAM_NN_INPUT], bot_state_t **bs);
 void AdamBotChatSetup(int client, bot_state_t *bs);
@@ -365,4 +374,6 @@ int GetAdaptiveAgents(bot_state_t** bs, int* AdamIndices);
 int AdamAttack(bot_state_t* bs);
 void AdamChangeViewAngles(bot_state_t *bs, float thinktime);
 int GetAmmoWeapon(int weaponNumber, bot_state_t* bs);
+void GenerateAimTargets(int amount, float minDiff, float rnd_range, int* seed);
+void GetAimTargets(float* dst);
 #endif

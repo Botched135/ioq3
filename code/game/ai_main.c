@@ -84,7 +84,8 @@ vmCvar_t bot_interbreedwrite;
 
 //ADAM Variables
 int fitnessSent;
-
+int seed;
+float targetArray[10];
 void ExitLevel( void );
 
 
@@ -1076,8 +1077,9 @@ int BotAI(int client, float thinktime) {
 	BotDeathmatchAI(bs, thinktime);
 	
 	#ifdef ADAPTATION_ACTIVE
-	if(bs->elaspedTime < FloatTime() && bs->setupcount <= 0)
+	if(bs->skillAdaptation != 0 && bs->setupcount <= 0)
 	{
+		G_Printf("Try to update\n");
 		currentSkill = bs->settings.skill;
 		skillAdaptation = currentSkill+bs->skillAdaptation;
 		if(skillAdaptation > 5 || skillAdaptation < 1)
@@ -1085,12 +1087,11 @@ int BotAI(int client, float thinktime) {
 		
 		if(skillAdaptation != currentSkill)
 		{
-			G_Printf("Debug time: %f\n",bs->elaspedTime);
+			G_Printf("Adaptive update the bot from %d to %d\n",currentSkill,skillAdaptation);
 			AdaptiveUpdate(bs,skillAdaptation);// whatever skill needed
 		}
-		bs->elaspedTime = FloatTime()+ADAPT_INTERVAL;
-		G_Printf("Debug time: %f\n",bs->elaspedTime);
-		
+		bs->skillAdaptation = 0;
+		bs->elaspedTime = FloatTime()+ADAPT_INTERVAL;		
 	}
 	
 	#endif
@@ -1421,7 +1422,7 @@ void AdaptiveUpdate(bot_state_t* bs, float skill)
 {
 	char filename[144], name[144], gender[144];
 	int client, entitynum, inuse, adamFlag, enemy;
-	int movestate, goalstate, chatstate, weaponstate;
+	int movestate, goalstate, chatstate, weaponstate, skillAdaptation;
 	bot_settings_t settings;
 	int errnum;
 	playerState_t ps;					//current player state
@@ -1543,7 +1544,7 @@ int BotAIStartFrame(int time) {
 	static int local_time;
 	static int botlib_residual;
 	static int lastbotthink_time;
-	#ifdef ADAM_ACTIVE 
+	#if defined(ADAM_ACTIVE) || defined(ADAM_DEBUG)
 	// FOR ADAM
 	int adaptiveAgents,pipeIn,pipeOut,shotsHits;
 	char  neatOutput[385],pausing[2], finish[2];
@@ -1560,7 +1561,9 @@ int BotAIStartFrame(int time) {
 	int adaptiveUpdate;
 	#endif
 	#if defined(ADAM_TRAINING) || defined(ADAM_TRAINING_DEBUG)
-	float targetArray[10];
+	float targetArray[ADAM_TRAINING_TARGETS];
+	float viewYaw, tempTarget;
+	int targetIndex, agentAmount;
 	#endif
 
 	
@@ -1575,15 +1578,17 @@ int BotAIStartFrame(int time) {
 	#if defined(ADAM_ACTIVE) || defined(ADAPTATION_AFFECTIVE)
 			if(strlen(pipeName) == 0)
 			{
+				seed = 0;
 				trap_Adam_Com_Get_PipeName(pipeName);
 				#if defined(ADAM_TRAINING) || defined(ADAM_TRAINING_DEBUG)
 				AdamSetTrainingTime(-1.0f);
-				GenerateAimTargets(targetArray,10,80.0f,30.0f);
+				GenerateAimTargets(ADAM_TRAINING_TARGETS,30.0f,30.0f,&seed);				
 				#endif
 				G_Printf("%f : Pipename in AI_MAIN: %s\n",FloatTime(),pipeName);
 			}
 			
 			// Informing trainer that this server is ready
+			
 			pipeOut = trap_Adam_Com_Open_Pipe(pipeName,0);
 			trap_Adam_Com_Write_Ready(pipeOut);
 			trap_Adam_Com_Close_Pipe(pipeOut);
@@ -1627,7 +1632,7 @@ int BotAIStartFrame(int time) {
 		G_Printf("Pausing \n");
 		// execute bot user commands every frame
 		#if defined(ADAM_TRAINING) || defined(ADAM_TRAINING_DEBUG)
-		GenerateAimTargets(targetArray,10,80.0f,30.0f);
+		GenerateAimTargets(ADAM_TRAINING_TARGETS,30.0f,30.0f,&seed);
 		AdamSetTrainingTime(-1.0f);
 		#endif
 		for( i = 0; i < MAX_CLIENTS; i++ ) {
@@ -1639,7 +1644,6 @@ int BotAIStartFrame(int time) {
 			}
 
 			
-
 			botstates[i]->lastucmd.forwardmove = 0;
 			botstates[i]->lastucmd.rightmove = 0;
 			botstates[i]->lastucmd.upmove = 0;
@@ -1650,6 +1654,7 @@ int BotAIStartFrame(int time) {
 				//RESET THE BOT
 				if(botstates[i]->adamFlag & (ADAM_ADAPTIVE | ADAM_RESET))
 				{
+
 					// So basically, what is important?
 					// Accuracy --> should not reward for JUST accuracy but also promote shooting
 					// --> but lets try it first anyway
@@ -1660,8 +1665,8 @@ int BotAIStartFrame(int time) {
 					tempBattleFrames = botstates[i]->frameInBattle > 0 ? botstates[i]->frameInBattle/300.0f : 1.0f;
 					shotsHits = botstates[i]->lasthitcount-botstates[i]->lastGenerationShotHit;
 					fitnessOutput[i][0] = 2;
-					fitnessOutput[i][1] = botstates[i]->frameInBattle > 20 ? botstates[i]->fitnessScore/botstates[i]->frameInBattle : 0.0f;
-					
+					//fitnessOutput[i][1] = botstates[i]->frameInBattle > 20 ? botstates[i]->fitnessScore/botstates[i]->frameInBattle : 0.0f;
+					fitnessOutput[i][1] = botstates[i]->fitnessScore/10.0f;
 					// Accuracy
 					/*
 					fitnessOutput[i][1] = botstates[i]->shotsTaken > 0 ? 
@@ -1681,15 +1686,26 @@ int BotAIStartFrame(int time) {
 					botstates[i]->timesHit = 0;
 					botstates[i]->framesOnTarget =0;
 					botstates[i]->lastGenerationShotHit = botstates[i]->cur_ps.persistant[PERS_HITS];
-					//trap_EA_Respawn(i);
+					
+					viewYaw = botstates[i]->viewangles[YAW];
+					botstates[i]->startYaw = viewYaw;
+					for(targetIndex = 0; targetIndex < 10;targetIndex++)
+					{
+						tempTarget = targetArray[targetIndex]+viewYaw;
+						if(tempTarget > 360.0f)
+							tempTarget-=360.0f;
+
+						botstates[i]->aimTargets[targetIndex] = tempTarget;
+					}
+
+
 					botstates[i]->adamFlag = ADAM_ADAPTIVE;
 					botstates[i]->shotsTaken = 0;
 					botstates[i]->moveFaliures =0;
-					botstates[i]->frameInBattle = 0;
 					botstates[i]->fitnessScore = 0.0f;
-					g_entities[botstates[i]->entitynum].health = 0;
+					//g_entities[botstates[i]->entitynum].health = 0;
 					//VectorClear(botstates[i]->lastMove);
-					AdamEnter_Respawn(botstates[i]);
+					AdamEnter_Training(botstates[i]);
 					#ifdef ADAM_TRAINING_DEBUG 
 					G_Printf("Bot number %i has a fitness of %f\n", botstates[i]->client,fitnessOutput[i][1]);
 					#endif
@@ -1870,7 +1886,8 @@ int BotAIStartFrame(int time) {
 		}
 		//
 		#ifdef ADAPTATION_ACTIVE
-		botstates[i]->skillAdaptation = adaptiveUpdate;
+		if(botstates[i]->skillAdaptation == 0)
+			botstates[i]->skillAdaptation = adaptiveUpdate;
 		#endif
 		botstates[i]->botthink_residual += elapsed_time;
 		//
@@ -1881,7 +1898,7 @@ int BotAIStartFrame(int time) {
 
 			if (g_entities[i].client->pers.connected == CON_CONNECTED) 
 			{
-				#ifdef ADAM_ACTIVE
+				#if defined(ADAM_ACTIVE) || defined(ADAM_DEBUG)
 				if(botstates[i]->adamFlag & ADAM_ADAPTIVE)
 					BotAdamAgent(i,(float)thinktime/1000,neatActions[i]);
 				else
@@ -2042,7 +2059,7 @@ int BotAIShutdown( int restart ) {
 ADAM Functions
 ==============
 */
-#ifdef ADAM_ACTIVE
+#if defined(ADAM_ACTIVE) || defined(ADAM_DEBUG)
 int BotAdamAgent(int clientNum,float thinktime, float *neatInput)
 {
 	bot_state_t *bs;
@@ -2080,28 +2097,11 @@ int BotAdamAgent(int clientNum,float thinktime, float *neatInput)
 	bs->areanum = BotPointAreaNum(bs->origin);
 
 
-	/*
-	=======================
-	START OF NEURAL NETWORK
-	=======================	
-	*/
-	/*
-	MOVE_WALK						1
-    MOVE_CROUCH						2
-    MOVE_JUMP						4
-    MOVE_GRAPPLE					8
-	MOVE_ROCKETJUMP					16
-    MOVE_BFGJUMP					32
-	*/
-
-	/*
-	FUNCTIONS:
-	BotChat_HitNoDeath(bs)
-	*/
 	bs->flags &= ~BFL_IDEALVIEWSET; 
 	AdamBotIntermission(bs);
-
+	
 	if (!bs->adamNode) AdamEnter_Seek(bs);
+
 	BotResetNodeSwitches();
 	if(bs->lasthealth > bs->inventory[INVENTORY_HEALTH]+1)
 		bs->timesHit++;
@@ -2483,7 +2483,7 @@ int GetAdaptiveAgents(bot_state_t** bs, int* AdamIndices)
 {
 	int amount,i;
 	amount = 0;
-	for(i = 0;i<8;i++)
+	for(i = 0;i<ADAM_AGENTS;i++)
 	{
 		AdamIndices[i] =-1;
 	}
@@ -2493,26 +2493,39 @@ int GetAdaptiveAgents(bot_state_t** bs, int* AdamIndices)
 		{ 
 			AdamIndices[amount] = i;
 			amount++;
-		}		
+			if(amount >= ADAM_AGENTS) break;
+		}
+		
 	}
 	return amount;
 }
 
-void GenerateAimTargets(float* targetArray, int amount, float minDiff, float rnd_range)
+void GenerateAimTargets(int amount, float minDiff, float rnd_range, int* seed)
 {
 	int i;
 	float diff_rnd,range_rnd, diff_range, temp;
 	
 	diff_range = 360.0f-(2.0f*minDiff);
-	range_rnd = crandom()*(rnd_range/2.0f);
+	
+	range_rnd = Q_crandom(seed)*(rnd_range/2.0f);
+
 	//Generates a point, and randomize from the range
 	targetArray[0] = 180.0f+range_rnd;
 	for(i = 1; i < amount; i++)
 	{
-		diff_rnd = (random()*diff_range)+minDiff;
+		diff_rnd = (Q_random(seed)*diff_range)+minDiff;
 		temp = targetArray[i-1]+diff_rnd;
-		if(temp >360.0f) temp -= 360.0f;
+		if(temp >360.0f) 
+			temp -= 360.0f;
+
 		targetArray[i] = temp;
+		(*seed)++;
 	}
+}
+void GetAimTargets(float* dst)
+{
+	int i;
+	for(i = 0; i< ADAM_TRAINING_TARGETS; i++)
+		dst[i] = targetArray[i];
 }
 #endif

@@ -5261,7 +5261,7 @@ void BotDeathmatchAI(bot_state_t *bs, float thinktime) {
 		#ifdef ADAM_DEBUG
 		bs->debugTime = FloatTime()+ADAPT_INTERVAL;
 		#endif
-		#ifdef ADAM_ACTIVE
+		#if defined(ADAM_ACTIVE) || defined(ADAM_DEBUG)
 		if(strcmp(bs->settings.characterfile,"bots/adam_c.c")==0)
 		{
 			bs->lastGenerationShotHit = 0;
@@ -5272,12 +5272,18 @@ void BotDeathmatchAI(bot_state_t *bs, float thinktime) {
 			bs->moveFaliures = 0;
 			bs->framesOnTarget = 0;
 			bs->frameInBattle = 0;
+			#ifdef ADAM_TRAINING
+			bs->aimIndex = 0;
+			#endif
 			bs->combatStatus = 0;
 			bs->fitnessScore = 0;
 			//VectorClear(bs->lastMove);
 			G_Printf("ADAPTIVE AGENT INITIALIZED\n");
 			return;
 		}
+		#endif
+		#ifdef ADAPTATION_ACTIVE
+		bs->skillAdaptation =0;
 		#endif
 		BotSetupAlternativeRouteGoals();
 	}
@@ -5511,7 +5517,7 @@ void BotShutdownDeathmatchAI(void) {
 ADAM FUNCTIONS
 
 */
-#ifdef ADAM_ACTIVE 
+#if defined(ADAM_ACTIVE) || defined(ADAM_DEBUG) 
 void AdamBotIntermission(bot_state_t *bs)
 {
 	bs->flags &= ~BFL_IDEALVIEWSET;
@@ -5810,23 +5816,23 @@ void AdamVectors(bot_state_t* bs, vec3_t viewAngles,vec3_t f,vec3_t r,vec3_t b,v
 	15 degrees first front radar set
 	*/
 	// RIGHT 
-	bs->enemyRadars[1][0] = viewYaw+13.75f; 
-	bs->enemyRadars[1][1] = 12.5f;
+	bs->enemyRadars[1][0] = viewYaw+17.5f; 
+	bs->enemyRadars[1][1] = 20.0f;
 
 	// LEFT
-	bs->enemyRadars[2][0] = viewYaw+346.25f; 
-	bs->enemyRadars[2][1] = 12.5f;
+	bs->enemyRadars[2][0] = viewYaw+342.5f; 
+	bs->enemyRadars[2][1] = 20.0f;
 
 
 	/*
 	25 degrees second front radar set
 	*/
 	// RIGHT
-	bs->enemyRadars[3][0] = viewYaw+32.5f; 
+	bs->enemyRadars[3][0] = viewYaw+40.0f; 
 	bs->enemyRadars[3][1] = 25.0f;
 
 	// LEFT
-	bs->enemyRadars[4][0] = viewYaw+327.5f; 
+	bs->enemyRadars[4][0] = viewYaw+320.0f; 
 	bs->enemyRadars[4][1] = 25.0f;	
 
 
@@ -5834,12 +5840,12 @@ void AdamVectors(bot_state_t* bs, vec3_t viewAngles,vec3_t f,vec3_t r,vec3_t b,v
 	45 degrees diagonal front radars
 	*/
 	// RIGHT 
-	bs->enemyRadars[5][0] = viewYaw+67.5f; 
-	bs->enemyRadars[5][1] = 45.0f;
+	bs->enemyRadars[5][0] = viewYaw+71.25f; 
+	bs->enemyRadars[5][1] = 37.5f;
 
 	// LEFT
-	bs->enemyRadars[6][0] = viewYaw+292.5f; 
-	bs->enemyRadars[6][1] = 45.0f;
+	bs->enemyRadars[6][0] = viewYaw+288.75f; 
+	bs->enemyRadars[6][1] = 37.5f;
 
 
 	/* 
@@ -5861,12 +5867,13 @@ void AdamVectors(bot_state_t* bs, vec3_t viewAngles,vec3_t f,vec3_t r,vec3_t b,v
 		bs->enemyRadars[i][2] = 0.0f;
 		bs->enemyRadars[i][3] = 0.0f;
 	}
-
+	#if !defined(ADAM_TRAINING) && !defined(ADAM_DEBUG_TRAINING)
 	AdamEnemyRadars(bs);
+	#endif
 	//G_Printf("EnemyRadar front: %f\n",bs->enemyRadars[12][2]);
-	/*G_Printf("Radar values:[%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f]\n",
-	bs->enemyRadars[0][2],bs->enemyRadars[1][2],bs->enemyRadars[2][2],bs->enemyRadars[3][2],bs->enemyRadars[4][2]
-	,bs->enemyRadars[5][2],bs->enemyRadars[6][2],bs->enemyRadars[7][2],bs->enemyRadars[8][2]);*/
+	//G_Printf("Radar values:[%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f,%.3f]\n",
+	//bs->enemyRadars[0][2],bs->enemyRadars[1][2],bs->enemyRadars[2][2],bs->enemyRadars[3][2],bs->enemyRadars[4][2]
+	//,bs->enemyRadars[5][2],bs->enemyRadars[6][2],bs->enemyRadars[7][2],bs->enemyRadars[8][2]);
 }
 // Only called when there is a bot in the front rangefinder.
 qboolean AdamOnTarget(bot_state_t* bs, vec3_t forward)

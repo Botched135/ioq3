@@ -3846,10 +3846,13 @@ void trap_Adam_Com_Read_Adaptation(int file, int *adaptationVal)
 	int returnVal;
 	char input[3];
 	returnVal = read(file,input,2);
+	
 	if(returnVal<0)
 		printf("ADAPT READ ERROR");
 		
 	*adaptationVal = atoi(input);
+	if(*adaptationVal != 0)
+		printf("The input is: %s but is translated to: %d\n",input,*adaptationVal);
 }
 
 void trap_Adam_Com_Write_Neat(int file, float neatArray[MAX_CLIENTS][ADAM_NN_INPUT],int adaptiveAgents)
