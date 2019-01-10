@@ -5810,17 +5810,17 @@ void AdamVectors(bot_state_t* bs, vec3_t viewAngles,vec3_t f,vec3_t r,vec3_t b,v
 
 	// FRONT RADAR
 	bs->enemyRadars[0][0] = viewYaw;
-	bs->enemyRadars[0][1] = 15.0f;
+	bs->enemyRadars[0][1] = 20.0f;
 
 	/*
 	15 degrees first front radar set
 	*/
 	// RIGHT 
-	bs->enemyRadars[1][0] = viewYaw+17.5f; 
+	bs->enemyRadars[1][0] = viewYaw+20.0f; 
 	bs->enemyRadars[1][1] = 20.0f;
 
 	// LEFT
-	bs->enemyRadars[2][0] = viewYaw+342.5f; 
+	bs->enemyRadars[2][0] = viewYaw+340.0f; 
 	bs->enemyRadars[2][1] = 20.0f;
 
 
@@ -5828,35 +5828,46 @@ void AdamVectors(bot_state_t* bs, vec3_t viewAngles,vec3_t f,vec3_t r,vec3_t b,v
 	25 degrees second front radar set
 	*/
 	// RIGHT
-	bs->enemyRadars[3][0] = viewYaw+40.0f; 
+	bs->enemyRadars[3][0] = viewYaw+42.5f; 
 	bs->enemyRadars[3][1] = 25.0f;
 
 	// LEFT
-	bs->enemyRadars[4][0] = viewYaw+320.0f; 
+	bs->enemyRadars[4][0] = viewYaw+317.5f; 
 	bs->enemyRadars[4][1] = 25.0f;	
 
 
 	/*
-	45 degrees diagonal front radars
+	30 degrees diagonal front radars
 	*/
 	// RIGHT 
-	bs->enemyRadars[5][0] = viewYaw+71.25f; 
-	bs->enemyRadars[5][1] = 37.5f;
+	bs->enemyRadars[5][0] = viewYaw+70.0f; 
+	bs->enemyRadars[5][1] = 30.0f;
 
 	// LEFT
-	bs->enemyRadars[6][0] = viewYaw+288.75f; 
-	bs->enemyRadars[6][1] = 37.5f;
+	bs->enemyRadars[6][0] = viewYaw+290.0f; 
+	bs->enemyRadars[6][1] = 30.0f;
 
 
 	/* 
-	90 degrees back radars
+	40 degrees side back radars
 	*/
-	// RIGHT 
-	bs->enemyRadars[7][0] = viewYaw+135.0f; 
-	bs->enemyRadars[7][1] = 90.0f;
+	// 
+	// RIGHT
+	bs->enemyRadars[7][0] = viewYaw+105.0f; 
+	bs->enemyRadars[7][1] = 40.0f;
 	// LEFT
-	bs->enemyRadars[8][0] = viewYaw+225.0f; 
-	bs->enemyRadars[8][1] = 90.0f;
+	bs->enemyRadars[8][0] = viewYaw+255.0f; 
+	bs->enemyRadars[8][1] = 40.0f;
+	/*
+	55 degrees back radars
+	*/
+
+	// RIGHT 
+	bs->enemyRadars[9][0] = viewYaw+152.5f; 
+	bs->enemyRadars[9][1] = 55.0f;
+	// LEFT
+	bs->enemyRadars[10][0] = viewYaw+207.5f; 
+	bs->enemyRadars[10][1] = 55.0f;
 
 
 	for(i = 0;i<ADAM_RADAR_AMOUNT;i++)

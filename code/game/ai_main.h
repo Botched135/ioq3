@@ -113,8 +113,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define ADAM_SIGHT_DISTANCE 1000.0f // Squared in order to avoid squareRoot
 #define ADAM_SIGHT_SQUARED	ADAM_SIGHT_DISTANCE*ADAM_SIGHT_DISTANCE
 #define ADAM_DIST_SCALAR	0.02f // method of ad-hoc
-#define ADAM_RADAR_AMOUNT	9
-#define ADAM_ANGLE_SPEED 	15.0f
+#define ADAM_RADAR_AMOUNT	11
+#define ADAM_ANGLE_SPEED 	20.0f
 // ADAM flag
 #define ADAM_ADAPTIVE		0x00000001
 #define ADAM_RESET 			0x00000002

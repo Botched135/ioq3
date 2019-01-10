@@ -3859,9 +3859,9 @@ void trap_Adam_Com_Write_Neat(int file, float neatArray[MAX_CLIENTS][ADAM_NN_INP
 {
 	int i, counter, returnVal;
 	char *writeArray;
-	char temp[91];
+	char temp[102];
 	counter = 0;
-	writeArray = calloc(910,sizeof(char));
+	writeArray = calloc(1220,sizeof(char));
 	for(i = 0; i<MAX_CLIENTS;i++)
 	{
 		if(neatArray[i][0] == 2)
@@ -3872,12 +3872,12 @@ void trap_Adam_Com_Write_Neat(int file, float neatArray[MAX_CLIENTS][ADAM_NN_INP
 			neatArray[i][7],neatArray[i][8],neatArray[i][9],neatArray[i][10],neatArray[i][11],neatArray[i][12],
 			neatArray[i][13],neatArray[i][14],neatArray[i][15],neatArray[i][16],neatArray[i][17],neatArray[i][18],
 			neatArray[i][19],neatArray[i][20],neatArray[i][21],neatArray[i][22]);*/
-			snprintf(temp,90,
-			"%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.0f:", 
+			snprintf(temp,102,
+			"%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.4f,%.0f:", 
 			/*neatArray[i][1]*/0.0f,/*neatArray[i][2]*/0.0f,neatArray[i][9],neatArray[i][10],neatArray[i][11],neatArray[i][12],
-			neatArray[i][13],neatArray[i][14],neatArray[i][15],neatArray[i][16],neatArray[i][17],/*neatArray[i][18]*/0.0f,
-			neatArray[i][19]);
-			temp[90] = '\0';
+			neatArray[i][13],neatArray[i][14],neatArray[i][15],neatArray[i][16],neatArray[i][17],neatArray[i][18],neatArray[i][19],/*neatArray[20]*/0.0f,
+			neatArray[i][21]);
+			temp[101] = '\0';
 
 			strcat(writeArray,temp);
 			counter++;

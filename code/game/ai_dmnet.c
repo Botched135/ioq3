@@ -2969,11 +2969,11 @@ int Adam_Fight(bot_state_t* bs, float* neatData)
 
 	//G_Printf("neatData[2]: %f, neatData[3] %f \n",neatData[2], neatData[3]);
 	angleTurn =0.0f;
-	if(NN_THRESHOLD >= neatData[3])
+	if(neatData[3] < NN_THRESHOLD )
 	{
-		if(neatData[2] >= NN_THRESHOLD)
+		if(neatData[2] > NN_THRESHOLD)
 			angleTurn = (neatData[2]*2.0f-1.0f)*ADAM_ANGLE_SPEED;
-		else if(neatData[2]<= -NN_THRESHOLD)
+		else if(neatData[2]< -NN_THRESHOLD)
 		{
 			angleTurn = (neatData[2]*2.0f+1.0f)*ADAM_ANGLE_SPEED;
 			//G_Printf("Greetings! Angle turn is: %f \n",angleTurn);
@@ -3215,7 +3215,11 @@ int Adam_Training(bot_state_t* bs, float* neatData)
 		}
 	}
 	else
+	{
+		bs->framesOnTarget = 0;
 		bs->frameInBattle++;
+	}
+		
 
 	if(BotIsDead(bs))
 	{
@@ -3223,14 +3227,16 @@ int Adam_Training(bot_state_t* bs, float* neatData)
 		return qfalse;
 	}
 	angleTurn =0.0f;
-	if(NN_THRESHOLD > neatData[3])
+	if(neatData[3] < NN_THRESHOLD)
 	{
 		if(neatData[2] > NN_THRESHOLD)
 		{
+			//G_Printf("POSITIVE \n");
 			angleTurn = (neatData[2]*2.0f-1.0f)*ADAM_ANGLE_SPEED;
 		}
 		else if(neatData[2]< -NN_THRESHOLD)
 		{
+			//G_Printf("NEGATIVE \n");
 			angleTurn = (neatData[2]*2.0f+1.0f)*ADAM_ANGLE_SPEED;
 		}
 		bs->ideal_viewangles[YAW]+= angleTurn;
@@ -3271,6 +3277,7 @@ void AdamTrainingFitness(bot_state_t* bs)
 	result = maxFitness/(bs->frameInBattle*1.0f);
 	if(result > 10.0f) 
 		result = 0.0f;
+
 	bs->fitnessScore += result;
 	//G_Printf("Client: %d, Result: %f, targetDist: %f, startYaw: %f, aimTarget: %f, frames: %d\n",bs->client, result, bs->targetDist,bs->startYaw,bs->aimTargets[bs->aimIndex],bs->frameInBattle);
 }
