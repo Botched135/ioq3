@@ -3093,7 +3093,7 @@ int Adam_Debug(bot_state_t* bs, float* neatData)
 	for(i=1;i<ADAM_RADAR_AMOUNT;i++)
 	{
 		if(bs->enemyRadars[i][2] == 1)
-			angleTurn = (i%2) == 1 ? 15.0f : -15.0f;
+			angleTurn = (i%2) == 1 ? 15.0f : -15.0f; 
 	}
 	bs->ideal_viewangles[YAW]+=angleTurn;
 
@@ -3159,9 +3159,9 @@ void AdamEnter_Training(bot_state_t* bs)
 
 	
 	//G_Printf("Client: %d, Herp: %f \n",bs->client, bs->startYaw);
-	targetDist = Q_fabs(viewYaw-bs->aimTargets[0]);
+	targetDist = Q_fabs(viewYaw-bs->aimTargets[0]-10.0f);
 	if(targetDist > 180.0f)
-		targetDist=(360.0f - targetDist-7.5f);
+		targetDist=(360.0f - targetDist);
 
 
 	bs->targetDist = targetDist;
@@ -3169,6 +3169,7 @@ void AdamEnter_Training(bot_state_t* bs)
 	bs->startYaw = viewYaw;
 	bs->adamNode = Adam_Training;
 	bs->aimIndex = 0;
+	bs->punishments =0;
 	bs->frameInBattle = 0;
 
 
@@ -3181,13 +3182,15 @@ void AdamEnter_Training(bot_state_t* bs)
 int Adam_Training(bot_state_t* bs, float* neatData)
 {
 	float angleTurn,targetDist;
+	int activeRadar;
 	vec3_t front, right, left, back;
 
 
 	AdamVectors(bs,bs->viewangles,front,right,back,left);
 	
+	activeRadar = AdamSetTrainingRadars(bs);
 	//Setup values sent to the NEAT
-	if(AdamSetTrainingRadars(bs))
+	if(activeRadar==0)
 	{
 		//Calc Fitness
 		bs->framesOnTarget++;
@@ -3195,6 +3198,7 @@ int Adam_Training(bot_state_t* bs, float* neatData)
 		{
 			AdamTrainingFitness(bs);
 			bs->frameInBattle =0;
+			bs->punishments = 0;
 			bs->framesOnTarget = 0;	
 			bs->aimIndex++;
 			if(bs->aimIndex > 9)
@@ -3205,15 +3209,17 @@ int Adam_Training(bot_state_t* bs, float* neatData)
 				return qfalse;
 			}
 			bs->startYaw = bs->viewangles[YAW];
-			targetDist= Q_fabs(bs->startYaw-bs->aimTargets[bs->aimIndex]);
+			targetDist= Q_fabs(bs->startYaw-bs->aimTargets[bs->aimIndex]-10.0f);
 		
 			if(targetDist > 180.0f)
-				targetDist = (360.0f-targetDist-7.5f);
+				targetDist = (360.0f-targetDist);
 
 			bs->targetDist = targetDist;
 			return qtrue;
 		}
 	}
+	else if(activeRadar == -1)
+		AdamEnter_Seek(bs);
 	else
 	{
 		bs->framesOnTarget = 0;
@@ -3226,18 +3232,23 @@ int Adam_Training(bot_state_t* bs, float* neatData)
 		AdamEnter_Respawn(bs);
 		return qfalse;
 	}
-	angleTurn =0.0f;
+
+	//angleTurn = (i%2) == 1 ? 15.0f : -15.0f; 
 	if(neatData[3] < NN_THRESHOLD)
 	{
 		if(neatData[2] > NN_THRESHOLD)
 		{
+			//TURN LEFT
 			//G_Printf("POSITIVE \n");
 			angleTurn = (neatData[2]*2.0f-1.0f)*ADAM_ANGLE_SPEED;
+			if(activeRadar % 2 == 0) bs->punishments++;
 		}
 		else if(neatData[2]< -NN_THRESHOLD)
 		{
+			//TURN RIGHT
 			//G_Printf("NEGATIVE \n");
 			angleTurn = (neatData[2]*2.0f+1.0f)*ADAM_ANGLE_SPEED;
+			if(activeRadar % 2 == 1) bs->punishments++;
 		}
 		bs->ideal_viewangles[YAW]+= angleTurn;
 	}
@@ -3249,6 +3260,10 @@ int Adam_Training(bot_state_t* bs, float* neatData)
 	if(bs->ideal_viewangles[YAW] > 360.0f) 	bs->ideal_viewangles[YAW]-=360.0f;
 	else if(bs->ideal_viewangles[YAW < 0.0f]) bs->ideal_viewangles[YAW] +=360.0f;
 	
+	/*if(bs->client == 0)
+	{
+		G_Printf("Angle turn: %f, goal: %f, current view %f\n",angleTurn,bs->aimTargets[bs->aimIndex], bs->viewangles[YAW]);
+	}*/
 	return qtrue;
 }
 int AdamSetTrainingRadars(bot_state_t* bs)
@@ -3263,9 +3278,9 @@ int AdamSetTrainingRadars(bot_state_t* bs)
 		if(!AdamFieldOfVision(bs->enemyRadars[i][0], bs->enemyRadars[i][1], targetYaw)) continue;
 		bs->enemyRadars[i][2]=1.0f;
 
-		return i == 0 ? qtrue : qfalse;
+		return i;
 	}
-	return qfalse;
+	return -1;
 
 }
 void AdamTrainingFitness(bot_state_t* bs)
@@ -3275,6 +3290,7 @@ void AdamTrainingFitness(bot_state_t* bs)
 
 	maxFitness = 10.0f*(bs->targetDist/ADAM_ANGLE_SPEED);
 	result = maxFitness/(bs->frameInBattle*1.0f);
+	result /= bs->punishments;
 	if(result > 10.0f) 
 		result = 0.0f;
 

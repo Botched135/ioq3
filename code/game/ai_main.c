@@ -1582,34 +1582,34 @@ int BotAIStartFrame(int time) {
 				trap_Adam_Com_Get_PipeName(pipeName);
 				#if defined(ADAM_TRAINING) || defined(ADAM_TRAINING_DEBUG)
 				AdamSetTrainingTime(-1.0f);
-				GenerateAimTargets(ADAM_TRAINING_TARGETS,45.0f,30.0f,&seed);				
+				GenerateAimTargets(ADAM_TRAINING_TARGETS,ADAM_MIN_ANGLE_DIF,30.0f,&seed);				
 				#endif
 				G_Printf("%f : Pipename in AI_MAIN: %s\n",FloatTime(),pipeName);
 			}
 			
 			// Informing trainer that this server is ready
-			
+			#ifndef ADAM_DEBUG
 			pipeOut = trap_Adam_Com_Open_Pipe(pipeName,0);
 			trap_Adam_Com_Write_Ready(pipeOut);
 			trap_Adam_Com_Close_Pipe(pipeOut);
+			#endif
 
 	#endif
 	#ifdef ADAPTATION_TIME
 			adaptiveUpdate = -1;
 	#endif
-	#ifdef ADAM_ACTIVE
+	#if defined(ADAM_ACTIVE) && !defined(ADAM_DEBUG) 
 				// Check if it needs to pause for a new generation
 			pipeIn = trap_Adam_Com_Open_Pipe(pipeName,1);
 			trap_Adam_Com_Read_Pause(pipeIn,pausing);
 			trap_Adam_Com_Close_Pipe(pipeIn);
-	
 		}
+	
 		if(pausing[0] == 'p')
 			trap_Cvar_Set("bot_pause","1");
 		else
 			trap_Cvar_Set("bot_pause","0");
 	#endif
-
 	trap_Cvar_Update(&bot_rocketjump);
 	trap_Cvar_Update(&bot_grapple);
 	trap_Cvar_Update(&bot_fastchat);
@@ -1628,14 +1628,16 @@ int BotAIStartFrame(int time) {
 		BotUpdateInfoConfigStrings();
 	}
 
-	if (bot_pause.integer) {
+	if (bot_pause.integer) 
+	{
 		G_Printf("Pausing \n");
 		// execute bot user commands every frame
 		#if defined(ADAM_TRAINING) || defined(ADAM_TRAINING_DEBUG)
-		GenerateAimTargets(ADAM_TRAINING_TARGETS,45.0f,30.0f,&seed);
+		GenerateAimTargets(ADAM_TRAINING_TARGETS,ADAM_MIN_ANGLE_DIF,30.0f,&seed);
 		AdamSetTrainingTime(-1.0f);
 		#endif
-		for( i = 0; i < MAX_CLIENTS; i++ ) {
+		for( i = 0; i < MAX_CLIENTS; i++ ) 
+		{
 			if( !botstates[i] || !botstates[i]->inuse ) {
 				continue;
 			}
@@ -1686,7 +1688,8 @@ int BotAIStartFrame(int time) {
 					botstates[i]->timesHit = 0;
 					botstates[i]->framesOnTarget =0;
 					botstates[i]->lastGenerationShotHit = botstates[i]->cur_ps.persistant[PERS_HITS];
-					
+					G_Printf("Punishments: %i\n",botstates[i]->punishments);
+					botstates[i]->punishments =0;
 					viewYaw = botstates[i]->viewangles[YAW];
 					botstates[i]->startYaw = viewYaw;
 					for(targetIndex = 0; targetIndex < 10;targetIndex++)
@@ -1709,9 +1712,9 @@ int BotAIStartFrame(int time) {
 					#ifdef ADAM_TRAINING_DEBUG 
 					G_Printf("Bot number %i has a fitness of %f\n", botstates[i]->client,fitnessOutput[i][1]);
 					#endif
-					
+									
 				}
-			#endif
+#endif
 			trap_BotUserCommand(botstates[i]->client, &botstates[i]->lastucmd);
 		}
 		#if defined(ADAM_TRAINING) || defined(ADAM_TRAINING_DEBUG)
@@ -1849,7 +1852,7 @@ int BotAIStartFrame(int time) {
 
 	floattime = trap_AAS_Time();
 	//Collect data here.
-	#ifdef ADAM_ACTIVE
+	#if defined(ADAM_ACTIVE) && !defined(ADAM_DEBUG)
 		if(adaptiveAgents)
 		{
 			// WRITE DATA
@@ -2503,7 +2506,7 @@ int GetAdaptiveAgents(bot_state_t** bs, int* AdamIndices)
 void GenerateAimTargets(int amount, float minDiff, float rnd_range, int* seed)
 {
 	int i;
-	float diff_rnd, diff_range, temp;
+	float diff_rnd, diff_range, temp,rn;
 	
 	diff_range = 180.0f-minDiff;
 
@@ -2512,7 +2515,8 @@ void GenerateAimTargets(int amount, float minDiff, float rnd_range, int* seed)
 	// Wont works as it will lap over itself... 
 	// 0 has to be the opposite of the target, that is 180+viewYaw
 	// Therefore the rng should be added to 180, and the rng should range from 0 to range_rnd/2
-	diff_rnd = 180.0f+(crandom()*diff_range);
+	rn =crandom();
+	diff_rnd = 180.0f+(rn*diff_range);
 	if(diff_rnd >360.0f) 
 			diff_rnd -= 360.0f;
 	else if(diff_rnd < 0.0f)
@@ -2521,7 +2525,8 @@ void GenerateAimTargets(int amount, float minDiff, float rnd_range, int* seed)
 	targetArray[0] = diff_rnd;
 	for(i = 1; i < amount; i++)
 	{
-		diff_rnd = 180.0f+(crandom()*diff_range);
+		rn=crandom();
+		diff_rnd = 180.0f+(rn*diff_range);
 
 		temp = targetArray[i-1]+diff_rnd;
 		if(temp >360.0f) 
@@ -2531,6 +2536,7 @@ void GenerateAimTargets(int amount, float minDiff, float rnd_range, int* seed)
 
 		targetArray[i] = temp;
 		(*seed)++;
+		G_Printf("Random number is: %f\n",rn);
 	}
 	G_Printf("Aim targets: %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f, %.2f\n", targetArray[0],targetArray[1],targetArray[2],targetArray[3],targetArray[4],
 																			  targetArray[5],targetArray[6],targetArray[7],targetArray[8],targetArray[9]);

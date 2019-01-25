@@ -90,15 +90,15 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define MAX_PROXMINES				64
 
 // Adaptive Changes (non-adam)
-//#define ADAPTATION_ACTIVE
+#define ADAPTATION_ACTIVE
 //#define ADAPTATION_TIME
-//#define ADAPTATION_AFFECTIVE
+#define ADAPTATION_AFFECTIVE
 #define ADAPT_INTERVAL				30
 
 // ADAM Training
-#define ADAM_ACTIVE
+//#define ADAM_ACTIVE
 //#define ADAM_AFFECTIVE
-#define ADAM_TRAINING
+//#define ADAM_TRAINING
 //#define ADAM_DEBUG	
 //#define ADAM_TRAINING_DEBUG
 
@@ -113,8 +113,9 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define ADAM_SIGHT_DISTANCE 1000.0f // Squared in order to avoid squareRoot
 #define ADAM_SIGHT_SQUARED	ADAM_SIGHT_DISTANCE*ADAM_SIGHT_DISTANCE
 #define ADAM_DIST_SCALAR	0.02f // method of ad-hoc
-#define ADAM_RADAR_AMOUNT	11
+#define ADAM_RADAR_AMOUNT	9
 #define ADAM_ANGLE_SPEED 	20.0f
+#define ADAM_MIN_ANGLE_DIF  120.0f
 // ADAM flag
 #define ADAM_ADAPTIVE		0x00000001
 #define ADAM_RESET 			0x00000002
@@ -316,6 +317,7 @@ typedef struct bot_state_s
 	float startYaw;
 	float prevYaw;
 	int aimIndex;
+	int punishments;
 
 	#endif 
 	#if defined(ADAM_ACTIVE) || defined(ADAM_DEBUG)

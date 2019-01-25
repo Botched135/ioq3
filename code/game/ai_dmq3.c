@@ -5274,6 +5274,7 @@ void BotDeathmatchAI(bot_state_t *bs, float thinktime) {
 			bs->frameInBattle = 0;
 			#ifdef ADAM_TRAINING
 			bs->aimIndex = 0;
+			bs->punishments=0;
 			#endif
 			bs->combatStatus = 0;
 			bs->fitnessScore = 0;
@@ -5840,12 +5841,12 @@ void AdamVectors(bot_state_t* bs, vec3_t viewAngles,vec3_t f,vec3_t r,vec3_t b,v
 	30 degrees diagonal front radars
 	*/
 	// RIGHT 
-	bs->enemyRadars[5][0] = viewYaw+70.0f; 
-	bs->enemyRadars[5][1] = 30.0f;
+	bs->enemyRadars[5][0] = viewYaw+72.5f; 
+	bs->enemyRadars[5][1] = 35.0f;
 
 	// LEFT
-	bs->enemyRadars[6][0] = viewYaw+290.0f; 
-	bs->enemyRadars[6][1] = 30.0f;
+	bs->enemyRadars[6][0] = viewYaw+287.5f; 
+	bs->enemyRadars[6][1] = 35.0f;
 
 
 	/* 
@@ -5853,22 +5854,23 @@ void AdamVectors(bot_state_t* bs, vec3_t viewAngles,vec3_t f,vec3_t r,vec3_t b,v
 	*/
 	// 
 	// RIGHT
-	bs->enemyRadars[7][0] = viewYaw+105.0f; 
-	bs->enemyRadars[7][1] = 40.0f;
+	bs->enemyRadars[7][0] = viewYaw+135.0f; 
+	bs->enemyRadars[7][1] = 90.0f;
 	// LEFT
-	bs->enemyRadars[8][0] = viewYaw+255.0f; 
-	bs->enemyRadars[8][1] = 40.0f;
+	bs->enemyRadars[8][0] = viewYaw+225.0f; 
+	bs->enemyRadars[8][1] = 90.0f;
 	/*
 	55 degrees back radars
 	*/
 
 	// RIGHT 
+	/*
 	bs->enemyRadars[9][0] = viewYaw+152.5f; 
 	bs->enemyRadars[9][1] = 55.0f;
 	// LEFT
 	bs->enemyRadars[10][0] = viewYaw+207.5f; 
 	bs->enemyRadars[10][1] = 55.0f;
-
+*/
 
 	for(i = 0;i<ADAM_RADAR_AMOUNT;i++)
 	{
